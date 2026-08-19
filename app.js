@@ -484,9 +484,9 @@ function renderSetup() {
       <div class="stepper">
         <div class="label">Skill tiers</div>
         <div class="controls">
-          <button class="btn subtle" onclick="bump('numTiers',-1,1,5)">−</button>
+          <button class="btn subtle" onclick="bump('numTiers',-1,1,10)">−</button>
           <span class="val">${s.numTiers}</span>
-          <button class="btn subtle" onclick="bump('numTiers',1,1,5)">+</button>
+          <button class="btn subtle" onclick="bump('numTiers',1,1,10)">+</button>
         </div>
       </div>
     </div>`;
