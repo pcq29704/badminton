@@ -449,6 +449,19 @@ function resetDay() {
 }
 
 // ---------------- rendering ----------------
+// Pick a column count (max 3) that leaves the fewest empty slots in the last
+// row, so e.g. 4 courts lay out as a clean 2x2 instead of 3 + 1 orphan.
+function courtCols(n) {
+  if (n <= 1) return 1;
+  if (n <= 3) return n;
+  let best = 3, bestEmpty = Infinity;
+  for (const cols of [3, 2]) {
+    const rem = n % cols;
+    const empty = rem === 0 ? 0 : cols - rem;
+    if (empty < bestEmpty) { best = cols; bestEmpty = empty; }
+  }
+  return best;
+}
 function tierDots(tier, max) {
   if (max <= 1) return "";
   const on = "●".repeat(max - tier + 1);
@@ -594,7 +607,7 @@ function renderPlay() {
 
   if (s.showHelp) html += renderHelp();
 
-  html += `<div class="courts-grid">`;
+  html += `<div class="courts-grid" style="grid-template-columns: repeat(${courtCols(s.courts.length)}, 1fr)">`;
   for (const court of s.courts) {
     const g = court.game;
     if (!g) {
