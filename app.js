@@ -127,11 +127,48 @@ function fillCourt(court) {
   });
 }
 
-// Courts marked "closing" sit out of refills — they get removed once their current game ends
+// Courts marked "closing" sit out of refills — they get removed once their current game ends.
+// Courts marked "holding" are mid-grace-window (see holdCourtForSync) — left alone until released.
 function fillEmptyCourts() {
   for (const court of state.courts) {
-    if (!court.game && !court.closing) fillCourt(court);
+    if (!court.game && !court.closing && !court.holding) fillCourt(court);
   }
+}
+
+// How long a just-finished court waits for a sibling court to also finish before
+// refilling alone. A bigger simultaneous free pool gives fillCourt more players to
+// choose from, instead of always reusing the exact four who just walked off.
+const HOLD_MS = 6000;
+let holdTimer = null;
+
+function holdCourtForSync(court) {
+  // a sibling court is already holding — that's exactly the sync we were waiting for,
+  // so join it and release both right now instead of waiting out the rest of the window
+  if (state.courts.some((c) => c !== court && c.holding)) {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    court.holding = true;
+    releaseHeldCourts();
+    return;
+  }
+  const othersPlaying = state.courts.some((c) => c !== court && c.game && !c.closing);
+  if (!othersPlaying) { fillCourt(court); return; } // nothing else in flight — nothing to wait for
+  court.holding = true;
+  holdTimer = setTimeout(() => {
+    holdTimer = null;
+    releaseHeldCourts();
+  }, HOLD_MS);
+}
+
+function releaseHeldCourts() {
+  state.courts.forEach((c) => { c.holding = false; });
+  fillEmptyCourts();
+  render();
+}
+
+// Manual override: stop waiting and fill every held court right now
+function fillNow() {
+  if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+  releaseHeldCourts();
 }
 
 // ---------------- actions ----------------
@@ -149,6 +186,7 @@ function updateName(i, v) { state.names[i] = v; }
 function updateTier(i, v) { state.tiers[i] = Number(v); }
 
 function startDay() {
+  if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
   state.players = state.names.map((n, i) => ({
     id: i,
     name: n.trim() || ("Player " + (i + 1)),
@@ -158,7 +196,7 @@ function startDay() {
   state.nextPlayerId = state.players.length;
   state.partnerHist = new Map();
   state.matchHist = new Map();
-  state.courts = Array.from({ length: state.numCourts }, (_, i) => ({ no: i + 1, game: null, closing: false }));
+  state.courts = Array.from({ length: state.numCourts }, (_, i) => ({ no: i + 1, game: null, closing: false, holding: false }));
   state.nextCourtNo = state.numCourts + 1;
   state.finished = 0;
   state.log = [];
@@ -208,7 +246,7 @@ function finishCourt(no) {
   if (court.closing) {
     state.courts = state.courts.filter((c) => c !== court);
   } else {
-    fillCourt(court);
+    holdCourtForSync(court);
   }
   render();
 }
@@ -230,14 +268,15 @@ function reshuffleCourt(no) {
 }
 
 function reshuffleAll() {
-  state.courts.forEach((c) => { if (!c.closing) c.game = null; });
+  if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+  state.courts.forEach((c) => { c.holding = false; if (!c.closing) c.game = null; });
   fillEmptyCourts();
   render();
 }
 
 // Add a new court to the rotation (e.g. an extra booking freed up)
 function addCourt() {
-  state.courts.push({ no: state.nextCourtNo++, game: null, closing: false });
+  state.courts.push({ no: state.nextCourtNo++, game: null, closing: false, holding: false });
   fillEmptyCourts();
   render();
 }
@@ -443,6 +482,7 @@ function copyLog() {
 
 function resetDay() {
   if (confirm("Reset the whole play day? All stats and history will be cleared.")) {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
     state.phase = "setup";
     render();
   }
@@ -611,13 +651,18 @@ function renderPlay() {
   for (const court of s.courts) {
     const g = court.game;
     if (!g) {
+      const body = court.holding
+        ? `<div style="font-size:34px;margin:10px 0 6px">⏳</div>
+           <div style="font-size:15px">Holding — waiting for another court to sync up…</div>
+           <button class="mini-btn" style="margin-top:10px" onclick="fillNow()">▶ Fill now</button>`
+        : `<div style="font-size:34px;margin:10px 0 6px">💤</div>
+           <div style="font-size:15px">Waiting — need 4 free players here.</div>`;
       html += `<div class="match-card center" style="color:var(--dim)">
         <div class="court-head" style="justify-content:center;position:relative">
           <div class="court-label">Court ${court.no}</div>
           <button class="mini-btn" style="position:absolute;right:0" onclick="endCourt(${court.no})" title="Remove this court">✕ End</button>
         </div>
-        <div style="font-size:34px;margin:10px 0 6px">💤</div>
-        <div style="font-size:15px">Waiting — need 4 free players here.</div>
+        ${body}
       </div>`;
       continue;
     }
