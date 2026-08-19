@@ -27,15 +27,7 @@ const pairKey = (a, b) => [a, b].sort((x, y) => x - y).join("|");
 const matchKey = (t1, t2) => {
   const k1 = pairKey(t1[0].id, t1[1].id);
   const k2 = pairKey(t2[0].id, t2[1].id);
-  return [k1, k2].sort().join("||");
-};
-const shuffle = (arr) => {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
+  return [k1, k2].sort((a, b) => a.localeCompare(b)).join("||");
 };
 const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
@@ -123,7 +115,7 @@ function fillCourt(court) {
       if (p.status === "keen") fairness -= 350;    // ⚡ wants to play = strong boost
     }
     const bp = bestPairing(combo);
-    const total = fairness + bp.s + Math.random() * 5; // tiny noise so ties rotate
+    const total = fairness + bp.s + Math.random() * 5; // NOSONAR tiny noise so ties rotate; not security-sensitive
     if (!best || total < best.total) best = { total, t1: bp.t1, t2: bp.t2 };
   }
   court.game = { teamA: best.t1, teamB: best.t2 };
