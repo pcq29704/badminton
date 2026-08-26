@@ -138,7 +138,7 @@ function fillEmptyCourts() {
 // How long a just-finished court waits for a sibling court to also finish before
 // refilling alone. A bigger simultaneous free pool gives fillCourt more players to
 // choose from, instead of always reusing the exact four who just walked off.
-const HOLD_MS = 6000;
+const HOLD_MS = 60000;
 let holdTimer = null;
 
 function holdCourtForSync(court) {
