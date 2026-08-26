@@ -358,8 +358,9 @@ const HELP = {
       ]],
       ["Playing a game", [
         "Each court card shows the two teams on either side of the dashed net. Go play — the app doesn't track scores.",
-        "When that court's game ends, tap <b>✓ Court N finished</b>. That court instantly gets 4 new players, chosen from everyone who is free.",
-        "Courts are independent. If Court 1 finishes early, tap its button — Court 2 keeps playing undisturbed.",
+        "When that court's game ends, tap <b>✓ Court N finished</b>. If every other court is still mid-game, it shows <b>⏳ Holding</b> for up to 10 minutes, waiting for another court to also finish so there's a bigger free pool to draw a fairer, less-repetitive game from.",
+        "Don't want to wait? Tap <b>▶ Fill now</b> on the holding court to fill it immediately.",
+        "Courts are otherwise independent — Court 2 keeps playing undisturbed while Court 1 holds or refills.",
         "<b>↻ Remix</b> redraws one court's game (only before you start playing it). <b>↻ All</b> redraws every court."
       ]],
       ["Taking a break or asking to play", [
@@ -396,8 +397,9 @@ const HELP = {
       ]],
       ["Khi chơi", [
         "Mỗi thẻ sân hiển thị hai đội ở hai bên lưới. Cứ vào chơi — app không ghi điểm.",
-        "Khi sân đó đánh xong, bấm <b>✓ Court N finished</b>. Sân đó sẽ được xếp ngay 4 người mới trong số những người đang rảnh.",
-        "Các sân độc lập với nhau. Nếu sân 1 xong sớm, cứ bấm nút của sân 1 — sân 2 vẫn chơi bình thường.",
+        "Khi sân đó đánh xong, bấm <b>✓ Court N finished</b>. Nếu các sân khác vẫn đang chơi, sân đó sẽ hiện <b>⏳ Holding</b> và đợi tối đa 10 phút để có sân khác cũng xong, nhờ đó có nhiều người rảnh hơn để xếp trận công bằng và đỡ trùng lặp hơn.",
+        "Không muốn đợi? Bấm <b>▶ Fill now</b> trên sân đang Holding để xếp trận ngay.",
+        "Các sân vẫn độc lập với nhau — sân 2 vẫn chơi bình thường trong lúc sân 1 đang đợi hoặc được xếp trận mới.",
         "<b>↻ Remix</b> xếp lại trận của một sân (chỉ nên dùng trước khi vào chơi). <b>↻ All</b> xếp lại tất cả các sân."
       ]],
       ["Nghỉ hoặc xin được chơi", [
