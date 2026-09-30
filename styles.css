@@ -114,3 +114,59 @@ select {
 .help-ul { margin: 0; padding-left: 18px; }
 .help-ul li { font-size: 13px; line-height: 1.5; color: var(--line); margin-bottom: 4px; }
 .help-ul b { color: var(--line); }
+
+/* ---------- iPad / tablet ---------- */
+html { -webkit-text-size-adjust: 100%; }
+body {
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+button, .chip, .mini-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+/* Touch screens: no sticky hover lift, bigger tap targets, 16px inputs so iOS doesn't zoom on focus */
+@media (hover: none) and (pointer: coarse) {
+  .chip:hover { transform: none; }
+  .chip:active { transform: scale(0.97); }
+  .mini-btn { padding: 8px 16px; font-size: 14px; min-height: 36px; }
+  .stepper button { min-width: 44px; min-height: 44px; }
+  input[type=text], select { font-size: 16px; }
+  select { min-height: 40px; }
+}
+
+/* Tablet portrait & landscape (iPad mini 744px → iPad Pro 1366px) */
+@media (min-width: 641px) and (max-width: 1366px) {
+  body { padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+  .wrap { max-width: 720px; }
+  .wrap.wide { max-width: 100%; }
+  h1 { font-size: 36px; }
+  .sub { font-size: 15px; }
+  .card { padding: 20px; }
+  .btn { padding: 13px 22px; font-size: 16px; }
+  .btn.big { padding: 16px; font-size: 18px; }
+  .btn.court-done { padding: 18px; font-size: 19px; }
+  .stepper .val { font-size: 26px; }
+  .hint, .warn { font-size: 14px; }
+  .team .p { font-size: clamp(18px, 2.4vw, 28px); }
+  .log-teams { font-size: 16px; }
+  .log-head, .log-meta, .legend { font-size: 13px; }
+  .help-ul li, .help-h { font-size: 15px; }
+}
+
+/* iPad portrait: 2 courts per row, tighter card spacing */
+@media (min-width: 641px) and (max-width: 1024px) and (orientation: portrait) {
+  .courts-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 14px; }
+  .match-card { padding: 16px; }
+  .net { margin: 0 12px; }
+}
+
+/* iPad landscape (1024–1366): allow up to 3 courts, keep cards compact */
+@media (min-width: 1001px) and (max-width: 1366px) and (orientation: landscape) {
+  .courts-grid { gap: 14px; }
+  .match-card { padding: 16px; }
+  .net { margin: 0 12px; }
+}
+
+/* Header controls wrap instead of overflowing on narrower tablets */
+@media (max-width: 834px) {
+  .header-bar { flex-wrap: wrap; gap: 10px; }
+}
