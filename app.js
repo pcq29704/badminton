@@ -53,7 +53,7 @@ let state = {
 
 // ---------------- helpers ----------------
 const pairKey = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
-const matchKey = (A, B) => [pairKey(A[0], A[1]), pairKey(B[0], B[1])].sort().join("||");
+const matchKey = (A, B) => [pairKey(A[0], A[1]), pairKey(B[0], B[1])].sort((x, y) => x.localeCompare(y)).join("||");
 const cnt = (m, k) => m.get(k) || 0;
 const inc = (m, k, w = 1) => m.set(k, cnt(m, k) + w);
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -394,7 +394,7 @@ async function signOut() {
   await db.auth.signOut();
 }
 
-function retryLoad() { if (state.user) afterLogin(state.user); else init(); }
+function retryLoad() { if (state.user) void afterLogin(state.user); else void init(); }
 
 // ---------------- setup screen ----------------
 async function enterSetup() {
@@ -438,14 +438,14 @@ async function createPlayer() {
 }
 
 function addNewPlayerAtSetup() {
-  run(async () => {
+  void run(async () => {
     const p = await createPlayer();
     state.picked.add(p.id);
   });
 }
 
 function startDay() {
-  run(async () => {
+  void run(async () => {
     const ids = state.roster.filter((p) => state.picked.has(p.id)).map((p) => p.id);
     if (ids.length < 4) throw new Oops("Tick at least 4 players to start.");
     const sess = await q(db.from("sessions").insert({ status: "active" }).select("id").single());
@@ -515,7 +515,7 @@ async function checkHolds() {
   if (!othersPlaying || expired) await releaseHolds();
 }
 
-function fillNow() { run(releaseHolds); }
+function fillNow() { void run(releaseHolds); }
 
 function holdExpiredSomewhere() {
   return state.courts.some((c) => c.holdStartedAt && !c.game && Date.now() - Date.parse(c.holdStartedAt) >= holdMs());
@@ -532,14 +532,14 @@ function tick() {
   document.querySelectorAll("[data-hold]").forEach((el) => {
     el.textContent = fmtLeft(Date.parse(el.dataset.hold) + holdMs() - Date.now());
   });
-  if (!state.busy && holdExpiredSomewhere()) run(checkHolds);
+  if (!state.busy && holdExpiredSomewhere()) void run(checkHolds);
 }
 setInterval(tick, 1000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) tick(); });
 
 // ---------------- play: results ----------------
 function finishCourt(no, winner) {
-  run(async () => {
+  void run(async () => {
     const court = courtByNo(no);
     if (!court || !court.game) return;
     const g = court.game;
@@ -594,7 +594,7 @@ function correctResult(gameId) {
   const newWinner = e.winner === "A" ? "B" : "A";
   const newNames = (newWinner === "A" ? e.teamA : e.teamB).map((p) => p.name).join(" & ");
   if (!confirm(`Change the result of game #${state.log.indexOf(e) + 1} so that ${newNames} won?`)) return;
-  run(async () => {
+  void run(async () => {
     const rows = await q(db.rpc("correct_result", { p_game_id: gameId, p_winner: newWinner }));
     applyRatingRows(rows);
     const fresh = makeLogEntry(gameId, e.courtNo, newWinner, e.endedAt, rows);
@@ -606,7 +606,7 @@ function correctResult(gameId) {
 // ---------------- play: players ----------------
 // Tap a chip: normal -> keen -> break -> normal
 function cycleStatus(id) {
-  run(async () => {
+  void run(async () => {
     const p = byId(id);
     if (!p) return;
     const next = p.status === "normal" ? "keen" : p.status === "keen" ? "break" : "normal";
@@ -622,7 +622,7 @@ function removePlayer(id) {
   if (!p) return;
   if (playingIds().has(id)) {
     // on court: flag them to leave once this game ends (tap again to undo)
-    run(async () => {
+    void run(async () => {
       await q(db.from("session_players").update({ pending_remove: !p.pendingRemove })
         .eq("session_id", state.session.id).eq("player_id", id));
       p.pendingRemove = !p.pendingRemove;
@@ -630,7 +630,7 @@ function removePlayer(id) {
     return;
   }
   if (!confirm(`Remove ${p.name} from today's session?`)) return;
-  run(async () => {
+  void run(async () => {
     await q(db.from("session_players").update({ left_at: nowIso() })
       .eq("session_id", state.session.id).eq("player_id", id));
     state.players = state.players.filter((x) => x.id !== id);
@@ -650,10 +650,10 @@ function updateAddExisting(v) { state.addExistingId = v; }
 function addExistingPlayer() {
   const id = Number(state.addExistingId);
   if (!id) return;
-  run(async () => { state.addExistingId = ""; await joinSession(id); });
+  void run(async () => { state.addExistingId = ""; await joinSession(id); });
 }
 function addNewPlayerDuringPlay() {
-  run(async () => { const p = await createPlayer(); await joinSession(p.id); });
+  void run(async () => { const p = await createPlayer(); await joinSession(p.id); });
 }
 
 // ---------------- play: courts ----------------
@@ -663,7 +663,7 @@ async function removeCourt(court) {
 }
 
 function addCourt() {
-  run(async () => {
+  void run(async () => {
     const row = await q(db.from("courts").insert({ session_id: state.session.id, court_no: state.nextCourtNo })
       .select("id,court_no").single());
     state.nextCourtNo++;
@@ -678,10 +678,10 @@ function endCourt(no) {
   if (!court) return;
   if (!court.game) {
     if (!confirm(`Remove Court ${no}? It isn't playing right now.`)) return;
-    run(async () => { await removeCourt(court); await checkHolds(); });
+    void run(async () => { await removeCourt(court); await checkHolds(); });
     return;
   }
-  run(async () => {
+  void run(async () => {
     await q(db.from("courts").update({ closing: !court.closing }).eq("id", court.id));
     court.closing = !court.closing;
   });
@@ -689,7 +689,7 @@ function endCourt(no) {
 
 // ↻ Remix: throw away an unplayed game and draw a different one. Never touches Elo.
 function reshuffleCourt(no) {
-  run(async () => {
+  void run(async () => {
     const court = courtByNo(no);
     if (!court || !court.game || court.closing) return;
     const old = court.game;
@@ -701,7 +701,7 @@ function reshuffleCourt(no) {
 
 function reshuffleAll() {
   if (!confirm("Redraw the games on every court? Only do this before anyone starts playing.")) return;
-  run(async () => {
+  void run(async () => {
     for (const c of state.courts) {
       if (c.game && !c.closing) {
         await q(db.rpc("remix_game", { p_game_id: c.game.id }));
@@ -714,7 +714,7 @@ function reshuffleAll() {
 
 function endDay() {
   if (!confirm("End today's session? Ratings are kept; games still in progress won't count.")) return;
-  run(async () => {
+  void run(async () => {
     await q(db.rpc("end_session", { p_session_id: state.session.id }));
     state.showStats = state.showLog = state.showManage = false;
     await enterSetup();
@@ -1235,4 +1235,4 @@ function render() {
 }
 
 render();
-init();
+void init();
