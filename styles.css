@@ -47,7 +47,7 @@ h1 { margin: 4px 0 2px; font-size: 30px; letter-spacing: 1px; text-transform: up
 .stepper .val { font-size: 22px; font-weight: 800; min-width: 24px; display: inline-block; }
 .stepper .controls { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 6px; }
 .stepper button { padding: 4px 12px; }
-input[type=text] {
+input[type=text], input[type=email], input[type=password] {
   flex: 1; background: var(--bg); border: 2px solid var(--card-lite);
   border-radius: 8px; padding: 9px 10px; color: var(--line); font-size: 14px; outline: none;
   width: 100%;
@@ -115,58 +115,61 @@ select {
 .help-ul li { font-size: 13px; line-height: 1.5; color: var(--line); margin-bottom: 4px; }
 .help-ul b { color: var(--line); }
 
-/* ---------- iPad / tablet ---------- */
-html { -webkit-text-size-adjust: 100%; }
-body {
-  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
-           max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-}
-button, .chip, .mini-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+/* ---------- v8: Supabase / Elo additions ---------- */
+.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
 
-/* Touch screens: no sticky hover lift, bigger tap targets, 16px inputs so iOS doesn't zoom on focus */
-@media (hover: none) and (pointer: coarse) {
-  .chip:hover { transform: none; }
-  .chip:active { transform: scale(0.97); }
-  .mini-btn { padding: 8px 16px; font-size: 14px; min-height: 36px; }
-  .stepper button { min-width: 44px; min-height: 44px; }
-  input[type=text], select { font-size: 16px; }
-  select { min-height: 40px; }
+/* tier badges */
+.tier {
+  display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 2px;
+  border-radius: 6px; font-size: 0.6em; font-weight: 800; letter-spacing: 0.5px;
+  text-align: center; vertical-align: middle; line-height: 1.5;
 }
+.t-S { background: #FFE8A3; color: #8A5A00; }
+.t-A { background: #D5F5E9; color: #0C7A59; }
+.t-B { background: #E0ECFF; color: #1D4ED8; }
+.t-C { background: #F1E9FF; color: #6D28D9; }
+.t-D { background: #EEF0F0; color: #5B6B68; }
+.chip .tier, .stat-row .tier, .log-teams .tier { font-size: 11px; }
+.elo { font-size: 11px; font-weight: 600; color: var(--dim); margin-left: 4px; }
 
-/* Tablet portrait & landscape (iPad mini 744px → iPad Pro 1366px) */
-@media (min-width: 641px) and (max-width: 1366px) {
-  body { padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
-  .wrap { max-width: 720px; }
-  .wrap.wide { max-width: 100%; }
-  h1 { font-size: 36px; }
-  .sub { font-size: 15px; }
-  .card { padding: 20px; }
-  .btn { padding: 13px 22px; font-size: 16px; }
-  .btn.big { padding: 16px; font-size: 18px; }
-  .btn.court-done { padding: 18px; font-size: 19px; }
-  .stepper .val { font-size: 26px; }
-  .hint, .warn { font-size: 14px; }
-  .team .p { font-size: clamp(18px, 2.4vw, 28px); }
-  .log-teams { font-size: 16px; }
-  .log-head, .log-meta, .legend { font-size: 13px; }
-  .help-ul li, .help-h { font-size: 15px; }
+/* setup: who's here */
+.chip.pick { font-size: 15px; padding: 9px 14px; opacity: 0.6; }
+.chip.pick.on { opacity: 1; border-color: var(--accent); background: #E3FAF1; }
+
+/* winner buttons */
+.win-row { display: flex; gap: 12px; margin-top: 16px; }
+.btn.win { flex: 1; padding: 15px 10px; font-size: 17px; }
+.win-hint { text-align: center; font-size: 11px; color: var(--dim); margin-top: 6px; }
+.closing-tag { color: var(--danger); text-transform: none; letter-spacing: 0; font-size: 11px; }
+.countdown { font-size: 26px; font-weight: 800; color: var(--accent); margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+/* rating changes */
+.delta { font-size: 12px; font-weight: 800; }
+.delta.up { color: var(--accent); }
+.delta.down { color: var(--danger); }
+.tier-move { font-size: 11px; font-weight: 800; color: var(--lav); }
+.won { font-weight: 800; }
+.stat-head { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+.mini-btn.small { padding: 3px 9px; font-size: 11px; }
+
+/* toast + saving */
+.toast {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  width: min(520px, calc(100% - 32px)); z-index: 20;
+  background: var(--card); border: 2px solid var(--accent); border-radius: 18px;
+  padding: 14px 40px 14px 16px; box-shadow: 0 10px 30px rgba(31,59,53,0.22); font-size: 14px;
 }
-
-/* iPad portrait: 2 courts per row, tighter card spacing */
-@media (min-width: 641px) and (max-width: 1024px) and (orientation: portrait) {
-  .courts-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 14px; }
-  .match-card { padding: 16px; }
-  .net { margin: 0 12px; }
+.toast.error { border-color: var(--danger); }
+.toast-title { font-weight: 800; margin-bottom: 4px; }
+.toast-body { line-height: 1.6; }
+.toast-x { position: absolute; top: 8px; right: 10px; border: none; background: none; font-size: 16px; color: var(--dim); cursor: pointer; }
+.saving {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 21;
+  background: var(--line); color: #fff; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700;
 }
-
-/* iPad landscape (1024–1366): allow up to 3 courts, keep cards compact */
-@media (min-width: 1001px) and (max-width: 1366px) and (orientation: landscape) {
-  .courts-grid { gap: 14px; }
-  .match-card { padding: 16px; }
-  .net { margin: 0 12px; }
-}
-
-/* Header controls wrap instead of overflowing on narrower tablets */
-@media (max-width: 834px) {
-  .header-bar { flex-wrap: wrap; gap: 10px; }
+.wrap.busy button, .wrap.busy select { pointer-events: none; }
+.wrap.busy .toast button { pointer-events: auto; }
+pre.code {
+  background: var(--bg); border: 2px solid var(--card-lite); border-radius: 10px;
+  padding: 10px; font-size: 12px; white-space: pre-wrap; word-break: break-all;
 }
