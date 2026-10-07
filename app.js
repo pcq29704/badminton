@@ -577,9 +577,7 @@ function showResultToast(e, corrected) {
   const winners = e.winner === "A" ? e.teamA : e.teamB;
   const parts = [...e.teamA, ...e.teamB].map((p) => {
     const d = p.after - p.before;
-    const tierMove = p.tierAfter && p.tierAfter !== p.tierBefore
-      ? ` <span class="tier-move">${esc(p.tierBefore)}→${esc(p.tierAfter)}</span>` : "";
-    return `${esc(p.name)} <span class="delta ${d >= 0 ? "up" : "down"}">${signed(d)}</span>${tierMove}`;
+    return `${esc(p.name)} <span class="delta ${d >= 0 ? "up" : "down"}">${signed(d)}</span>`;
   });
   showToast("info",
     `<div class="toast-title">${corrected ? "Corrected — " : ""}Court ${e.courtNo}: ${winners.map((p) => esc(p.name)).join(" & ")} won</div>` +
@@ -1030,7 +1028,7 @@ function renderManage() {
       : '<span style="color:var(--dim)">waiting</span>';
     html += `<div class="player-row" style="align-items:center">
       <div style="flex:1">
-        <div style="font-weight:700">${esc(p.name)} ${tierBadge(p.tier)} <span class="elo">${Math.round(p.elo)}</span></div>
+        <div style="font-weight:700">${esc(p.name)} <span class="elo">${Math.round(p.elo)}</span></div>
         <div style="font-size:11px">${status}</div>
       </div>
       <button class="mini-btn" onclick="removePlayer(${p.id})">${p.pendingRemove ? "Undo" : "Remove"}</button>
@@ -1043,7 +1041,7 @@ function renderManage() {
     html += `<div class="player-row">
       <select style="flex:1;padding:9px 6px" onchange="updateAddExisting(this.value)">
         <option value="">Choose a player…</option>
-        ${absent.map((p) => `<option value="${p.id}" ${String(s.addExistingId) === String(p.id) ? "selected" : ""}>${esc(p.name)} (${esc(p.tier)})</option>`).join("")}
+        ${absent.map((p) => `<option value="${p.id}" ${String(s.addExistingId) === String(p.id) ? "selected" : ""}>${esc(p.name)}</option>`).join("")}
       </select>
       <button class="btn subtle" onclick="addExistingPlayer()">+ Add</button>
     </div>`;
@@ -1105,8 +1103,8 @@ function renderPlay() {
     const teamHtml = (team, right) =>
       `<div class="team${right ? " right" : ""}">` +
       team.map((id) => {
-        const p = byId(id) || { id, name: nameOf(id), tier: "", status: "normal" };
-        return `<div class="p">${esc(p.name)} ${tierBadge(p.tier)}${badges(p, tired)}</div>`;
+        const p = byId(id) || { id, name: nameOf(id), status: "normal" };
+        return `<div class="p">${esc(p.name)}${badges(p, tired)}</div>`;
       }).join("") + `</div>`;
     html += `<div class="match-card">
       <div class="court-head">
