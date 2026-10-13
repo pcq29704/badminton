@@ -25,9 +25,9 @@ Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to the
 development project's values, then restart the dev server. `.env.local` is
 ignored by Git. Use only the public publishable key, never a service-role key.
 
-The credentials in legacy `config.js` are production credentials. The Next.js
-setup does not load that file. Do not copy those values into `.env.local` or
-use the production project for development or testing.
+Do not use the production project's credentials for local development or
+testing. The app reads Supabase configuration only from environment variables;
+the old production `config.js` has been removed.
 
 Testing is deferred until development credentials are supplied. Deployment to
 Vercel will be handled later.
@@ -35,6 +35,7 @@ Vercel will be handled later.
 ## Code structure
 
 - `src/app`: Next.js routes and shared document layout. `/index.html` redirects to `/`.
+  `globals.css` contains the existing shared theme.
 - `src/features/court-balancer`: React organiser screens, session loading,
   matching, history, and command controller. Commands publish detached React
   snapshots and fill courts sequentially. Timers and auth subscriptions are
@@ -46,7 +47,7 @@ Vercel will be handled later.
 - `supabase/` and `migrations/`: Existing backend functions and SQL; unchanged
   by the Next.js conversion.
 
-The root static HTML/JavaScript files remain as migration references for the
-deferred regression checks. Next.js does not serve or load them. Existing
-source-based tests still refer to those files and need to be retargeted before
-they can verify the React implementation.
+`tests/fixtures/legacy` retains the pre-migration scripts and profile markup
+used by existing baseline tests. These fixtures are not served or loaded by
+Next.js. Those baseline tests do not verify the React implementation; React
+regression checks remain deferred until the development setup is available.

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const migration = await readFile(new URL('../migrations/20261012_player_profiles.sql', import.meta.url), 'utf8');
 const edge = await readFile(new URL('../supabase/functions/player-api/index.ts', import.meta.url), 'utf8');
-const browser = await readFile(new URL('../profile.js', import.meta.url), 'utf8');
+const browser = await readFile(new URL('./fixtures/legacy/profile.js', import.meta.url), 'utf8');
 const baseline = await readFile(new URL('../court_balancer_schema.sql', import.meta.url), 'utf8');
 
 test('password claim compares exact text and is only executable by the Edge Function role', () => {

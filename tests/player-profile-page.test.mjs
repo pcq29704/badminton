@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const html = await readFile(new URL('../profile.html', import.meta.url), 'utf8');
-const script = await readFile(new URL('../profile.js', import.meta.url), 'utf8');
+const html = await readFile(new URL('./fixtures/legacy/profile.html', import.meta.url), 'utf8');
+const script = await readFile(new URL('./fixtures/legacy/profile.js', import.meta.url), 'utf8');
 
 test('profile page loads the shared theme, public key, and player page script', () => {
   assert.match(html, /styles\.css/);

@@ -1,6 +1,8 @@
 # Next.js Migration Plan
 
-**Status:** Next.js foundation and React conversion added on 2026-10-13. Organiser and player-profile routes now render React components. Runtime regression tests, database verification, deployment, and legacy-file cleanup are deferred.
+**Status:** Next.js foundation, React conversion, and root-file cleanup added on 2026-10-13. Organiser and player-profile routes now render React components. Runtime regression tests, database verification, and deployment are deferred.
+
+**Cleanup:** Removed the unused root `index.html` and production `config.js`. Moved unchanged legacy scripts/profile markup into `tests/fixtures/legacy`, updated baseline test paths, and moved the unchanged theme into `src/app/globals.css`. No application command, matching, profile, or backend behaviour changed in this cleanup.
 
 **2026-10-13 setup constraints:** The user requested a simple local setup, deferred all testing, and prohibited testing against the current production Supabase credentials. Local development credentials will be provided later. Do not read the production values from `config.js` into the Next.js application or use them as fallbacks. Until development environment values are supplied, show a configuration message and make no Supabase requests. Vercel is the eventual deployment target; deployment work is deferred. These instructions override the testing and deployment steps below for this setup stage.
 

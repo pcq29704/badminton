@@ -49,7 +49,7 @@ function appFixture() {
     setInterval() {}, setTimeout() { return 1; }, clearTimeout() {},
     console, Date, Math, confirm: () => true,
   });
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, 'fixtures', 'legacy', 'app.js'), 'utf8'), context);
   const state = vm.runInContext('state', context);
   state.phase = 'play';
   state.session = { ...session };
