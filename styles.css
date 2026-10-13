@@ -38,6 +38,8 @@ h1 { margin: 4px 0 2px; font-size: 30px; letter-spacing: 1px; text-transform: up
 }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn.ghost { background: var(--card); color: var(--line); border: 2px solid var(--card-lite); box-shadow: none; }
+.btn.rank-toggle { background: var(--card); color: var(--line); border: 2px solid var(--card-lite); box-shadow: none; }
+.btn.rank-toggle.on { background: var(--lav); color: #fff; border-color: var(--lav); }
 .btn.subtle { background: var(--card-lite); color: var(--line); box-shadow: none; }
 .btn.danger { background: transparent; color: var(--danger); border: 2px solid var(--danger); box-shadow: none; }
 .btn.big { width: 100%; padding: 14px; font-size: 16px; }
@@ -65,10 +67,40 @@ select {
 }
 .court-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .court-label { font-size: 15px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; }
+.mode-tag { color: var(--dim); font-size: 11px; letter-spacing: 0; }
 .mini-btn {
   background: var(--bg); border: 2px solid var(--card-lite); color: var(--dim);
   border-radius: 999px; padding: 5px 13px; font-size: 13px; font-weight: 700; cursor: pointer;
 }
+.profile-link { text-decoration: none; padding: 4px 9px; align-self: center; }
+.player-profile-name { color: inherit; text-decoration: none; }
+.player-profile-name:hover { color: var(--accent); text-decoration: underline; }
+.profile-cover {
+  min-height: 190px; display: flex; align-items: end; padding: 20px; margin-top: 14px;
+  border-radius: 22px; background-color: var(--line); background-size: cover; background-position: center;
+  box-shadow: var(--shadow); color: #fff;
+}
+.profile-identity { display: flex; align-items: center; gap: 14px; }
+.profile-avatar {
+  width: 88px; height: 88px; flex: 0 0 88px; border: 3px solid #fff; border-radius: 50%; object-fit: cover;
+  background: var(--card-lite);
+}
+.profile-avatar-empty { display: grid; place-items: center; font-size: 40px; }
+.profile-username { font-size: clamp(24px, 5vw, 38px); font-weight: 900; overflow-wrap: anywhere; }
+.profile-rank { font-size: 14px; font-weight: 700; }
+.profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.profile-stats .card { min-width: 0; padding: 13px 8px; }
+.profile-stats strong { display: block; margin-top: 4px; font-size: 22px; }
+.profile-field { display: block; margin: 12px 0; font-size: 12px; font-weight: 700; color: var(--dim); }
+.profile-field > span { display: block; margin-bottom: 5px; }
+.profile-field input[type=file] { display: block; width: 100%; padding: 8px; border-radius: 8px; background: var(--bg); color: var(--line); }
+.profile-message { position: static; transform: none; width: auto; margin-top: 14px; }
+.profile-history { display: grid; gap: 10px; }
+.profile-game { padding: 10px 0; border-bottom: 1px solid var(--card-lite); }
+.profile-game:last-child { border-bottom: 0; }
+.profile-game-team { padding: 3px 0; font-size: 14px; }
+.profile-game-team a { color: inherit; }
+@media (max-width: 420px) { .profile-stats { gap: 5px; } .profile-stats .label { font-size: 10px; letter-spacing: .8px; } }
 .teams { display: flex; align-items: stretch; }
 .team { flex: 1; }
 .team.right { text-align: right; }

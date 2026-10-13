@@ -34,7 +34,7 @@ let state = {
   tiers: [],              // rows from the tiers table, strongest first
   roster: [],             // every active player in the database
   // setup screen
-  setupCourts: 2, picked: new Set(), newName: "", newTier: "B",
+  setupCourts: 2, picked: new Set(), newName: "", newUsername: "", newUsernameManual: false, newTier: "B",
   // live session
   session: null,
   players: [],            // here today: {id,name,elo,tier,gamesTotal,games,consec,status,pendingRemove,eloStart}
@@ -66,6 +66,13 @@ const signed = (d) => { const r = Math.round(d); return (r > 0 ? "+" : r < 0 ? "
 const nowIso = () => new Date().toISOString();
 const seedTiers = () => state.tiers.filter((t) => t.seed_elo != null);
 const tierBadge = (code) => (code ? `<span class="tier t-${esc(code)}">${esc(code)}</span>` : "");
+const usernameFromName = (name) => String(name || "").trim().toLowerCase()
+  .replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "player";
+const profileHref = (username) => `profile.html?u=${encodeURIComponent(username || "")}`;
+const profileLink = (username, label = "Profile") => username
+  ? `<a class="mini-btn profile-link" href="${esc(profileHref(username))}" aria-label="Profile for ${esc(username)}" title="Player profile">${esc(label)}</a>` : "";
+const profileName = (p) => p?.username
+  ? `<a class="player-profile-name" href="${esc(profileHref(p.username))}">${esc(p.name)}</a>` : esc(p?.name || "?");
 
 const PAIRINGS = [
   [[0, 1], [2, 3]],
@@ -217,6 +224,7 @@ function makeLogEntry(gameId, courtNo, winner, endedAt, rows) {
   const side = (t) => rows.filter((r) => r.team === t).map((r) => ({
     id: r.player_id,
     name: r.players?.name || nameOf(r.player_id),
+    username: r.players?.username || "",
     before: Number(r.elo_before),
     after: Number(r.elo_after),
     tierBefore: r.tier_before,
@@ -249,20 +257,20 @@ async function loadBasics() {
 }
 
 async function loadRoster() {
-  const rows = await q(db.from("players").select("id,name,elo,tier,games_total").eq("active", true).order("name"));
+  const rows = await q(db.from("players").select("id,name,username,elo,tier,games_total").eq("active", true).order("name"));
   state.roster = rows.map((p) => ({ ...p, elo: Number(p.elo) }));
 }
 
 // Rebuild the whole live session from the database (used on open, after refresh, and after errors)
 async function loadSession(id) {
   const [sess, sps, courts, games, prev] = await Promise.all([
-    q(db.from("sessions").select("id,started_at,status").eq("id", id).single()),
+    q(db.from("sessions").select("id,started_at,status,rank_new_games").eq("id", id).single()),
     q(db.from("session_players")
-      .select("player_id,games,consec,status,pending_remove,players(id,name,elo,tier,games_total)")
+      .select("player_id,games,consec,status,pending_remove,players(id,name,username,elo,tier,games_total)")
       .eq("session_id", id).is("left_at", null)),
     q(db.from("courts").select("id,court_no,closing,hold_started_at,removed_at").eq("session_id", id).order("court_no")),
     q(db.from("games")
-      .select("id,court_id,status,winner,ended_at,game_players(player_id,team,elo_before,elo_after,tier_before,tier_after,players(name))")
+      .select("id,court_id,status,winner,ended_at,ranked,game_players(player_id,team,elo_before,elo_after,tier_before,tier_after,players(name,username))")
       .eq("session_id", id).in("status", ["playing", "finished"]).order("id")),
     q(db.from("sessions").select("id").eq("status", "ended").order("started_at", { ascending: false }).limit(HISTORY_SESSIONS)),
   ]);
@@ -274,6 +282,7 @@ async function loadSession(id) {
   state.players = sps.map((r) => ({
     id: r.player_id,
     name: r.players.name,
+    username: r.players.username,
     elo: Number(r.players.elo),
     tier: r.players.tier,
     gamesTotal: r.players.games_total,
@@ -316,6 +325,7 @@ async function loadSession(id) {
   for (const g of finished) {
     g.game_players.forEach((r) => { if (r.players?.name) state.names.set(r.player_id, r.players.name); });
     const e = makeLogEntry(g.id, courtNoById.get(g.court_id), g.winner, g.ended_at, g.game_players);
+    e.ranked = g.ranked;
     state.log.push(e);
     recordToday(e.teamA.map((p) => p.id), e.teamB.map((p) => p.id));
     for (const p of [...e.teamA, ...e.teamB]) {
@@ -330,6 +340,7 @@ async function loadSession(id) {
     if (!court) continue;
     court.game = {
       id: g.id,
+      ranked: g.ranked,
       teamA: g.game_players.filter((r) => r.team === "A").map((r) => r.player_id),
       teamB: g.game_players.filter((r) => r.team === "B").map((r) => r.player_id),
     };
@@ -418,22 +429,41 @@ function bumpCourts(d) { state.setupCourts = Math.max(1, Math.min(6, state.setup
 function togglePick(id) { state.picked.has(id) ? state.picked.delete(id) : state.picked.add(id); render(); }
 function pickAll() { state.picked = new Set(state.roster.map((p) => p.id)); render(); }
 function pickNone() { state.picked = new Set(); render(); }
-function updateNewName(v) { state.newName = v; }
+function updateNewName(v) {
+  state.newName = v;
+  if (!state.newUsernameManual) state.newUsername = usernameFromName(v);
+}
+function updateNewUsername(v) { state.newUsername = v; state.newUsernameManual = true; }
 function updateNewTier(v) { state.newTier = v; }
 
 // Create a brand-new player in the database (their Elo comes from the chosen tier)
 async function createPlayer() {
   const name = state.newName.trim();
+  const username = state.newUsername.trim().toLowerCase();
   if (!name) throw new Oops("Type a name first.");
+  if (!/^[a-z0-9._-]{1,32}$/.test(username)) throw new Oops("Use 1–32 letters, numbers, dots, underscores, or hyphens for the username.");
   if (state.roster.some((p) => p.name.trim().toLowerCase() === name.toLowerCase())) {
     throw new Oops(`${name} is already in your player list.`);
   }
-  const row = await q(db.from("players").insert({ name, tier: state.newTier })
-    .select("id,name,elo,tier,games_total").single());
+  if (state.roster.some((p) => (p.username || "").trim().toLowerCase() === username)) {
+    throw new Oops("That username is already taken. Choose another one.");
+  }
+  let row;
+  try {
+    row = await q(db.from("players").insert({ name, username, tier: state.newTier })
+      .select("id,name,username,elo,tier,games_total").single());
+  } catch (e) {
+    if (/players_username_unique|duplicate key value/i.test(e.message || "")) {
+      throw new Oops("That username is already taken. Choose another one.");
+    }
+    throw e;
+  }
   const p = { ...row, elo: Number(row.elo) };
   state.roster.push(p);
   state.roster.sort((a, b) => a.name.localeCompare(b.name));
   state.newName = "";
+  state.newUsername = "";
+  state.newUsernameManual = false;
   return p;
 }
 
@@ -465,7 +495,8 @@ async function fillCourt(court, avoidKey) {
   const gameId = await q(db.rpc("start_game", {
     p_court_id: court.id, p_team_a: pick.teamA, p_team_b: pick.teamB,
   }));
-  court.game = { id: gameId, teamA: pick.teamA, teamB: pick.teamB };
+  const game = await q(db.from("games").select("ranked").eq("id", gameId).single());
+  court.game = { id: gameId, ranked: game.ranked, teamA: pick.teamA, teamB: pick.teamB };
   court.holdStartedAt = null;
   // same as the server: anyone free who wasn't picked is resting, so their streak resets
   const busy = playingIds();
@@ -544,13 +575,14 @@ function finishCourt(no, winner) {
     if (!court || !court.game) return;
     const g = court.game;
     const rows = await q(db.rpc("finish_game", { p_game_id: g.id, p_winner: winner }));
-    applyRatingRows(rows);
+    if (g.ranked) applyRatingRows(rows);
 
     const played = new Set([...g.teamA, ...g.teamB]);
     state.players.forEach((p) => {
-      if (played.has(p.id)) { p.games++; p.consec++; p.gamesTotal++; }
+      if (played.has(p.id)) { p.games++; p.consec++; if (g.ranked) p.gamesTotal++; }
     });
     const entry = makeLogEntry(g.id, court.no, winner, nowIso(), rows);
+    entry.ranked = g.ranked;
     state.log.push(entry);
     recordToday(g.teamA, g.teamB);
     court.game = null;
@@ -575,13 +607,13 @@ function finishCourt(no, winner) {
 
 function showResultToast(e, corrected) {
   const winners = e.winner === "A" ? e.teamA : e.teamB;
-  const parts = [...e.teamA, ...e.teamB].map((p) => {
+  const parts = e.ranked ? [...e.teamA, ...e.teamB].map((p) => {
     const d = p.after - p.before;
     return `${esc(p.name)} <span class="delta ${d >= 0 ? "up" : "down"}">${signed(d)}</span>`;
-  });
+  }).join(" · ") : "Unranked — ratings unchanged";
   showToast("info",
-    `<div class="toast-title">${corrected ? "Corrected — " : ""}Court ${e.courtNo}: ${winners.map((p) => esc(p.name)).join(" & ")} won</div>` +
-    `<div class="toast-body">${parts.join(" · ")}</div>`,
+    `<div class="toast-title">${corrected ? "Corrected — " : ""}Court ${e.courtNo} (${e.ranked ? "Ranked" : "Unranked"}): ${winners.map((p) => esc(p.name)).join(" & ")} won</div>` +
+    `<div class="toast-body">${parts}</div>`,
     e.gameId);
 }
 
@@ -594,10 +626,18 @@ function correctResult(gameId) {
   if (!confirm(`Change the result of game #${state.log.indexOf(e) + 1} so that ${newNames} won?`)) return;
   void run(async () => {
     const rows = await q(db.rpc("correct_result", { p_game_id: gameId, p_winner: newWinner }));
-    applyRatingRows(rows);
+    if (e.ranked) applyRatingRows(rows);
     const fresh = makeLogEntry(gameId, e.courtNo, newWinner, e.endedAt, rows);
     Object.assign(e, { winner: newWinner, teamA: fresh.teamA, teamB: fresh.teamB });
     showResultToast(e, true);
+  });
+}
+
+function toggleRanked() {
+  void run(async () => {
+    const ranked = !state.session.rank_new_games;
+    await q(db.from("sessions").update({ rank_new_games: ranked }).eq("id", state.session.id));
+    state.session.rank_new_games = ranked;
   });
 }
 
@@ -711,7 +751,7 @@ function reshuffleAll() {
 }
 
 function endDay() {
-  if (!confirm("End today's session? Ratings are kept; games still in progress won't count.")) return;
+  if (!confirm("End today's session? Games still in progress won't count.")) return;
   void run(async () => {
     await q(db.rpc("end_session", { p_session_id: state.session.id }));
     state.showStats = state.showLog = state.showManage = false;
@@ -738,7 +778,8 @@ const HELP = {
       ]],
       ["Playing a game", [
         "Each court shows two teams either side of the dashed net. When the game ends, tap <b>🏆 Won</b> under the winning side.",
-        "A pop-up shows everyone's rating change. Tapped the wrong side? Tap <b>⇄ Flip result</b> in the pop-up or in the Log. This works until one of those four players finishes another game.",
+        "New matches are unranked by default. Use the ranked toggle to make future matches ranked; matches already on court keep their mode.",
+        "Ranked results show everyone's rating change. Unranked results record the winner without changing ratings. Tap <b>⇄ Flip result</b> in the pop-up or Log if you tapped the wrong side.",
         "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting for another court so there's a bigger pool to draw a fresh, fair game from. <b>▶ Fill now</b> skips the wait.",
         "<b>↻ Remix</b> redraws one court's game (only before it starts). <b>↻ All</b> redraws every court."
       ]],
@@ -750,7 +791,7 @@ const HELP = {
         "<b>🔥</b> next to a name means that person has played 2+ games in a row."
       ]],
       ["Ratings and tiers", [
-        "Everyone has an Elo rating. Winners gain points, losers lose them — more for an upset, fewer for an expected win. Both players on a team get the same change.",
+        "Everyone has an Elo rating. Only ranked results change it: winners gain points and losers lose them. Both players on a team get the same change.",
         "Teams are balanced on the exact ratings, and the app avoids repeating partners and matchups (today and recent sessions).",
         "Tiers are labels from the rating: <b>S</b> (earned only), <b>A</b>, <b>B</b>, <b>C</b>, <b>D</b> (earned only, organiser-only label). A small buffer stops people flickering between tiers.",
         "New players' ratings move faster for their first 10 games, so a wrong starting tier corrects itself quickly."
@@ -777,7 +818,8 @@ const HELP = {
       ]],
       ["Khi chơi", [
         "Mỗi sân hiển thị hai đội ở hai bên lưới. Khi trận kết thúc, bấm <b>🏆 Won</b> ở dưới đội thắng.",
-        "Một thông báo hiện thay đổi điểm của từng người. Bấm nhầm đội? Bấm <b>⇄ Flip result</b> trong thông báo hoặc trong Log. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
+        "Trận mới mặc định không tính điểm. Bật nút Ranked để các trận tạo sau đó được tính điểm; trận đang trên sân giữ nguyên chế độ.",
+        "Trận Ranked hiện thay đổi điểm của từng người. Trận Unranked chỉ lưu đội thắng, không đổi điểm. Bấm <b>⇄ Flip result</b> để sửa đội thắng.",
         "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi thêm một sân xong để có nhiều người hơn, xếp trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
         "<b>↻ Remix</b> xếp lại trận của một sân (chỉ trước khi bắt đầu đánh). <b>↻ All</b> xếp lại tất cả các sân."
       ]],
@@ -789,7 +831,7 @@ const HELP = {
         "<b>🔥</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
       ]],
       ["Điểm Elo và tier", [
-        "Mỗi người có điểm Elo. Thắng thì được cộng, thua thì bị trừ — thắng bất ngờ được nhiều hơn, thắng như dự đoán được ít hơn. Hai người cùng đội nhận cùng mức thay đổi.",
+        "Mỗi người có điểm Elo. Chỉ trận Ranked mới đổi điểm: thắng được cộng, thua bị trừ. Hai người cùng đội nhận cùng mức thay đổi.",
         "Các đội được cân theo điểm chính xác, và app tránh lặp lại cặp đôi hoặc cặp đấu (hôm nay và vài buổi gần đây).",
         "Tier là nhãn dựa trên điểm: <b>S</b> (chỉ đạt được qua thi đấu), <b>A</b>, <b>B</b>, <b>C</b>, <b>D</b> (chỉ đạt được qua thi đấu, chỉ người tổ chức thấy). Có một vùng đệm nhỏ để tier không nhảy qua lại liên tục.",
         "Người mới thay đổi điểm nhanh hơn trong 10 trận đầu, nên nếu chọn tier ban đầu sai thì sẽ tự điều chỉnh nhanh."
@@ -842,7 +884,8 @@ function logFlags(e, idx) {
 }
 
 function logAsText() {
-  const nm = (t) => t.map((p) => `${p.name} (${Math.round(p.before)}→${Math.round(p.after)})`).join(" + ");
+  const nm = (t, ranked) => t.map((p) => ranked
+    ? `${p.name} (${Math.round(p.before)}→${Math.round(p.after)})` : p.name).join(" + ");
   const lines = state.log.map((e, i) => {
     const f = logFlags(e, i);
     const flags = [];
@@ -851,8 +894,8 @@ function logAsText() {
     if (f.repeatB) flags.push(`team B repeated (x${f.repeatB} before)`);
     if (f.repeatMatch) flags.push(`MATCHUP REPEATED (x${f.repeatMatch} before)`);
     const time = new Date(e.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    return `#${i + 1} [${time}] Court ${e.courtNo} — Team ${e.winner} won\n` +
-      `   A: ${nm(e.teamA)}\n   B: ${nm(e.teamB)}\n` +
+    return `#${i + 1} [${time}] Court ${e.courtNo} (${e.ranked ? "Ranked" : "Unranked"}) — Team ${e.winner} won\n` +
+      `   A: ${nm(e.teamA, e.ranked)}\n   B: ${nm(e.teamB, e.ranked)}\n` +
       `   ${flags.length ? flags.join(", ") : "balanced, all fresh"}`;
   });
   const tally = [...state.players].sort((a, b) => b.games - a.games)
@@ -981,7 +1024,7 @@ function renderSetup() {
     for (const p of s.roster) {
       const on = s.picked.has(p.id);
       html += `<button class="chip pick${on ? " on" : ""}" onclick="togglePick(${p.id})">
-        ${on ? "✓ " : ""}${esc(p.name)} ${tierBadge(p.tier)}<span class="elo">${Math.round(p.elo)}${isNewPlayer(p) ? " · new" : ""}</span></button>`;
+        ${on ? "✓ " : ""}${esc(p.name)} ${tierBadge(p.tier)}<span class="elo">${Math.round(p.elo)}${isNewPlayer(p) ? " · new" : ""}</span></button>${profileLink(p.username, "↗")}`;
     }
     html += `</div>`;
   }
@@ -992,6 +1035,10 @@ function renderSetup() {
     <div class="player-row">
       <input type="text" value="${esc(s.newName)}" placeholder="Name" oninput="updateNewName(this.value)"
         onkeydown="if(event.key==='Enter')addNewPlayerAtSetup()">
+      <input type="text" value="${esc(s.newUsername)}" placeholder="Username" maxlength="32" oninput="updateNewUsername(this.value)"
+        onkeydown="if(event.key==='Enter')addNewPlayerAtSetup()">
+    </div>
+    <div class="player-row">
       ${renderSeedTierSelect()}
       <button class="btn subtle" onclick="addNewPlayerAtSetup()">+ Add</button>
     </div>
@@ -1028,7 +1075,7 @@ function renderManage() {
       : '<span style="color:var(--dim)">waiting</span>';
     html += `<div class="player-row" style="align-items:center">
       <div style="flex:1">
-        <div style="font-weight:700">${esc(p.name)} <span class="elo">${Math.round(p.elo)}</span></div>
+        <div style="font-weight:700">${profileName(p)} <span class="elo">${Math.round(p.elo)}</span></div>
         <div style="font-size:11px">${status}</div>
       </div>
       <button class="mini-btn" onclick="removePlayer(${p.id})">${p.pendingRemove ? "Undo" : "Remove"}</button>
@@ -1048,6 +1095,9 @@ function renderManage() {
   }
   html += `<div class="player-row">
     <input type="text" value="${esc(s.newName)}" placeholder="New player name" oninput="updateNewName(this.value)">
+    <input type="text" value="${esc(s.newUsername)}" placeholder="Username" maxlength="32" oninput="updateNewUsername(this.value)">
+  </div>
+  <div class="player-row">
     ${renderSeedTierSelect()}
     <button class="btn subtle" onclick="addNewPlayerDuringPlay()">+ New</button>
   </div>
@@ -1069,6 +1119,7 @@ function renderPlay() {
         <div style="font-size:34px;font-weight:800;line-height:1;color:var(--accent)">${s.log.length}</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn rank-toggle${s.session.rank_new_games ? " on" : ""}" onclick="toggleRanked()" aria-pressed="${s.session.rank_new_games}">${s.session.rank_new_games ? "Ranked" : "Unranked"} for new matches</button>
         <button class="btn ghost" onclick="addCourt()">+ Court</button>
         <button class="btn ghost" onclick="reshuffleAll()">↻ All</button>
         <button class="btn ghost" onclick="toggleManage()">${s.showManage ? "Hide players" : "Players"}</button>
@@ -1104,11 +1155,11 @@ function renderPlay() {
       `<div class="team${right ? " right" : ""}">` +
       team.map((id) => {
         const p = byId(id) || { id, name: nameOf(id), status: "normal" };
-        return `<div class="p">${esc(p.name)}${badges(p, tired)}</div>`;
+        return `<div class="p">${profileName(p)}${badges(p, tired)}</div>`;
       }).join("") + `</div>`;
     html += `<div class="match-card">
       <div class="court-head">
-        <div class="court-label">Court ${court.no}${court.closing ? ' <span class="closing-tag">· closing after this game</span>' : ""}</div>
+        <div class="court-label">Court ${court.no} <span class="mode-tag">${g.ranked ? "Ranked" : "Unranked"}</span>${court.closing ? ' <span class="closing-tag">· closing after this game</span>' : ""}</div>
         <div style="display:flex;gap:6px">
           ${court.closing ? "" : `<button class="mini-btn" onclick="reshuffleCourt(${court.no})" title="Redraw this game">↻ Remix</button>`}
           <button class="mini-btn" onclick="endCourt(${court.no})">${court.closing ? "↩ Keep open" : "✕ End"}</button>
@@ -1131,7 +1182,7 @@ function renderPlay() {
   if (waiting.length > 0) {
     html += `<div class="card" style="background:var(--card-lite)">
       <div class="label" style="margin-bottom:6px">Waiting to play</div>
-      <div style="font-size:18px;font-weight:600">${waiting.map((p) => esc(p.name) + (p.status === "keen" ? " ⚡" : "")).join(", ")}</div>
+      <div style="font-size:18px;font-weight:600">${waiting.map((p) => profileName(p) + (p.status === "keen" ? " ⚡" : "")).join(", ")}</div>
     </div>`;
   }
 
@@ -1182,7 +1233,7 @@ function renderPlay() {
       const e = s.log[i];
       const f = logFlags(e, i);
       const nm = (t, won) => `<span class="${won ? "won" : ""}">` + t.map((p) =>
-        `${esc(p.name)} <span class="delta ${p.after >= p.before ? "up" : "down"}">${signed(p.after - p.before)}</span>`).join(" + ") +
+        esc(p.name) + (e.ranked ? ` <span class="delta ${p.after >= p.before ? "up" : "down"}">${signed(p.after - p.before)}</span>` : "")).join(" + ") +
         (won ? " 🏆" : "") + `</span>`;
       const flags = [];
       if (f.gap > (s.settings?.balance_deadzone ?? 30)) flags.push(`<span style="color:var(--rest)">Elo gap ${Math.round(f.gap)}</span>`);
@@ -1192,7 +1243,7 @@ function renderPlay() {
       const time = new Date(e.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       html += `<div class="log-row">
         <div class="log-head" style="display:flex;justify-content:space-between;align-items:center">
-          <span>#${i + 1} · Court ${e.courtNo} · ${time}</span>
+          <span>#${i + 1} · Court ${e.courtNo} · ${e.ranked ? "Ranked" : "Unranked"} · ${time}</span>
           <button class="mini-btn small" onclick="correctResult(${e.gameId})">⇄ Flip result</button>
         </div>
         <div class="log-teams">${nm(e.teamA, e.winner === "A")}
@@ -1200,7 +1251,7 @@ function renderPlay() {
         <div class="log-meta">${flags.join(" · ")}</div>
       </div>`;
     }
-    html += `<p class="hint" style="font-size:11px">“Elo gap” = difference in combined team ratings before the game. Repeat flags mean nothing fresher was available. A result can be flipped until one of its players finishes another game.</p>
+    html += `<p class="hint" style="font-size:11px">“Elo gap” = difference in combined team ratings before the game. Repeat flags mean nothing fresher was available. Unranked results can be flipped later; ranked results can be flipped until a player finishes another ranked game.</p>
     </div>`;
   }
 

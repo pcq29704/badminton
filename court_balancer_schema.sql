@@ -71,6 +71,10 @@ insert into public.tiers (code, rank, seed_elo, min_elo, organiser_only) values
 create table public.players (
   id          bigint generated always as identity primary key,
   name        text    not null check (length(trim(name)) > 0),
+  username    text    not null check (username = trim(username) and username ~ '^[A-Za-z0-9._-]{1,32}$'),
+  password    text,
+  profile_image_path     text,
+  background_image_path  text,
   elo         numeric(8,2) not null,
   tier        text    not null references public.tiers(code),
   games_total int     not null default 0,
@@ -79,6 +83,7 @@ create table public.players (
 );
 -- "Duc", "duc" and " Duc " count as the same name
 create unique index players_name_unique on public.players (lower(trim(name)));
+create unique index players_username_unique on public.players (lower(trim(username)));
 
 -- New players: Elo is always set from their tier's starting value
 create or replace function public.players_seed_elo()
@@ -106,10 +111,48 @@ create trigger players_seed_elo
 before insert on public.players
 for each row execute function public.players_seed_elo();
 
+-- Player passwords use the explicit first-claim product flow. This function
+-- locks the player row so concurrent first logins cannot claim different
+-- passwords. It returns only the player's id and username.
+create or replace function public.claim_player_login(p_username text, p_password text)
+returns table (player_id bigint, username text)
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_id bigint;
+  v_username text;
+  v_saved_password text;
+begin
+  if p_username is null or trim(p_username) = '' or p_password is null or p_password = '' then
+    return;
+  end if;
+
+  select p.id, p.username, p.password
+    into v_id, v_username, v_saved_password
+    from public.players p
+   where lower(trim(p.username)) = lower(trim(p_username))
+   for update;
+
+  if not found then return; end if;
+  if v_saved_password is null then
+    update public.players set password = p_password where id = v_id;
+  elsif v_saved_password <> p_password then
+    return;
+  end if;
+  return query select v_id, v_username;
+end;
+$$;
+revoke all on function public.claim_player_login(text, text) from public, anon, authenticated;
+grant execute on function public.claim_player_login(text, text) to service_role;
+
 -- One row per play day. Only one session can be active at a time.
+-- rank_new_games is copied to each new game and does not change existing games.
 create table public.sessions (
   id         bigint generated always as identity primary key,
   status     text not null default 'active' check (status in ('active', 'ended')),
+  rank_new_games boolean not null default false,
   started_at timestamptz not null default now(),
   ended_at   timestamptz,
   check ((status = 'ended') = (ended_at is not null))
@@ -143,6 +186,7 @@ create table public.games (
   id         bigint generated always as identity primary key,
   session_id bigint not null references public.sessions(id) on delete cascade,
   court_id   bigint not null references public.courts(id) on delete cascade,
+  ranked     boolean not null default false,
   status     text not null default 'playing'
              check (status in ('playing', 'finished', 'remixed', 'abandoned')),
   winner     char(1) check (winner in ('A', 'B')),
@@ -279,6 +323,7 @@ declare
   v_all     bigint[] := p_team_a || p_team_b;
   v_game_id bigint;
   v_bad     int;
+  v_ranked  boolean;
 begin
   if not is_organiser() then
     raise exception 'Only the organiser can start games';
@@ -297,7 +342,9 @@ begin
   if v_court.closing then
     raise exception 'Court % is closing and cannot start a new game', v_court.court_no;
   end if;
-  if exists (select 1 from sessions where id = v_court.session_id and status <> 'active') then
+  select rank_new_games into v_ranked
+    from sessions where id = v_court.session_id and status = 'active' for update;
+  if not found then
     raise exception 'This session has ended';
   end if;
   if exists (select 1 from games where court_id = p_court_id and status = 'playing') then
@@ -324,8 +371,8 @@ begin
     raise exception 'Some players are not available (away, on break, leaving, or already on a court)';
   end if;
 
-  insert into games (session_id, court_id)
-  values (v_court.session_id, p_court_id)
+  insert into games (session_id, court_id, ranked)
+  values (v_court.session_id, p_court_id, v_ranked)
   returning id into v_game_id;
 
   insert into game_players (game_id, player_id, team)
@@ -371,8 +418,8 @@ begin
 end;
 $$;
 
--- Record a result: updates the game, all four players' Elo and tiers,
--- and today's game counts, all in one transaction.
+-- Record a result and today's game counts in one transaction.
+-- Only ranked games update persistent Elo, tier, and games_total.
 create or replace function public.finish_game(p_game_id bigint, p_winner char)
 returns table (
   player_id   bigint,
@@ -404,27 +451,34 @@ begin
   if v_game.status <> 'playing' then
     raise exception 'Game % is not in progress (status: %)', p_game_id, v_game.status;
   end if;
-  select * into v_set from settings where id = 1;
-
   -- lock the four players, then snapshot their current rating
   perform 1 from players p
     join game_players gp on gp.player_id = p.id
    where gp.game_id = p_game_id
      for update of p;
 
-  update game_players gp
-     set elo_before  = p.elo,
-         tier_before = p.tier,
-         k_used      = case when p.games_total < v_set.provisional_games
-                            then v_set.k_provisional else v_set.k_established end
-    from players p
-   where p.id = gp.player_id and gp.game_id = p_game_id;
+  if v_game.ranked then
+    select * into v_set from settings where id = 1;
+    update game_players gp
+       set elo_before  = p.elo,
+           tier_before = p.tier,
+           k_used      = case when p.games_total < v_set.provisional_games
+                              then v_set.k_provisional else v_set.k_established end
+      from players p
+     where p.id = gp.player_id and gp.game_id = p_game_id;
 
-  perform private.rate_game(p_game_id, p_winner);
+    perform private.rate_game(p_game_id, p_winner);
 
-  update players p
-     set games_total = p.games_total + 1
-   where p.id in (select gp.player_id from game_players gp where gp.game_id = p_game_id);
+    update players p
+       set games_total = p.games_total + 1
+     where p.id in (select gp.player_id from game_players gp where gp.game_id = p_game_id);
+  else
+    update game_players gp
+       set elo_before = p.elo, elo_after = p.elo,
+           tier_before = p.tier, tier_after = p.tier, k_used = null
+      from players p
+     where p.id = gp.player_id and gp.game_id = p_game_id;
+  end if;
 
   update session_players sp
      set games = sp.games + 1, consec = sp.consec + 1
@@ -442,9 +496,8 @@ begin
 end;
 $$;
 
--- Fix a result entered for the wrong team. Allowed only while none of the
--- four players has finished a later game (otherwise later Elo changes
--- would already be based on the wrong numbers).
+-- Fix a result entered for the wrong team. Ranked results cannot be
+-- changed after one of the players finishes a later ranked game.
 create or replace function public.correct_result(p_game_id bigint, p_winner char)
 returns table (
   player_id   bigint,
@@ -474,24 +527,26 @@ begin
   end if;
 
   if v_game.winner <> p_winner then
-    if exists (
-      select 1
-        from game_players gp
-        join game_players gp2 on gp2.player_id = gp.player_id and gp2.game_id <> gp.game_id
-        join games g2 on g2.id = gp2.game_id
+    if v_game.ranked then
+      if exists (
+        select 1
+          from game_players gp
+          join game_players gp2 on gp2.player_id = gp.player_id and gp2.game_id <> gp.game_id
+          join games g2 on g2.id = gp2.game_id
+         where gp.game_id = p_game_id
+           and g2.status = 'finished' and g2.ranked
+           and g2.ended_at > v_game.ended_at
+      ) then
+        raise exception 'Too late to correct: a player from this game has already finished another ranked game';
+      end if;
+
+      perform 1 from players p
+        join game_players gp on gp.player_id = p.id
        where gp.game_id = p_game_id
-         and g2.status = 'finished'
-         and g2.ended_at > v_game.ended_at
-    ) then
-      raise exception 'Too late to correct: a player from this game has already finished another game';
+         for update of p;
+
+      perform private.rate_game(p_game_id, p_winner);
     end if;
-
-    perform 1 from players p
-      join game_players gp on gp.player_id = p.id
-     where gp.game_id = p_game_id
-       for update of p;
-
-    perform private.rate_game(p_game_id, p_winner);
     update games set winner = p_winner where id = p_game_id;
   end if;
 
@@ -576,6 +631,14 @@ create policy "organiser full access" on public.games
   for all to authenticated using (public.is_organiser()) with check (public.is_organiser());
 create policy "organiser full access" on public.game_players
   for all to authenticated using (public.is_organiser()) with check (public.is_organiser());
+
+-- Public reads are allowed for profile images. No anon/authenticated write
+-- policy is added; the player Edge Function uploads with service_role.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'player-profile-images', 'player-profile-images', true, 5242880,
+  array['image/jpeg', 'image/png', 'image/webp']::text[]
+);
 
 
 -- =====================================================================
