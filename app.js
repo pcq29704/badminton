@@ -22,6 +22,9 @@ const W = {
 };
 const HISTORY_SESSIONS = 3; // how many previous sessions feed repeat-avoidance
 
+// Stats and Log panels are for development/debugging only. Open the app with ?debug in the URL to show them.
+const DEBUG = new URLSearchParams(location.search).has("debug");
+
 // ---------------- state ----------------
 let state = {
   phase: "loading",       // loading | login | not-organiser | error | setup | play
@@ -738,7 +741,7 @@ const HELP = {
       ]],
       ["Playing a game", [
         "Each court shows two teams either side of the dashed net. When the game ends, tap <b>🏆 Won</b> under the winning side.",
-        "A pop-up shows everyone's rating change. Tapped the wrong side? Tap <b>⇄ Flip result</b> in the pop-up or in the Log. This works until one of those four players finishes another game.",
+        "A pop-up shows everyone's rating change. Tapped the wrong side? Tap <b>⇄ Flip result</b> in the pop-up. This works until one of those four players finishes another game.",
         "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting for another court so there's a bigger pool to draw a fresh, fair game from. <b>▶ Fill now</b> skips the wait.",
         "<b>↻ Remix</b> redraws one court's game (only before it starts). <b>↻ All</b> redraws every court."
       ]],
@@ -777,7 +780,7 @@ const HELP = {
       ]],
       ["Khi chơi", [
         "Mỗi sân hiển thị hai đội ở hai bên lưới. Khi trận kết thúc, bấm <b>🏆 Won</b> ở dưới đội thắng.",
-        "Một thông báo hiện thay đổi điểm của từng người. Bấm nhầm đội? Bấm <b>⇄ Flip result</b> trong thông báo hoặc trong Log. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
+        "Một thông báo hiện thay đổi điểm của từng người. Bấm nhầm đội? Bấm <b>⇄ Flip result</b> trong thông báo. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
         "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi thêm một sân xong để có nhiều người hơn, xếp trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
         "<b>↻ Remix</b> xếp lại trận của một sân (chỉ trước khi bắt đầu đánh). <b>↻ All</b> xếp lại tất cả các sân."
       ]],
@@ -1072,8 +1075,8 @@ function renderPlay() {
         <button class="btn ghost" onclick="addCourt()">+ Court</button>
         <button class="btn ghost" onclick="reshuffleAll()">↻ All</button>
         <button class="btn ghost" onclick="toggleManage()">${s.showManage ? "Hide players" : "Players"}</button>
-        <button class="btn ghost" onclick="toggleStats()">${s.showStats ? "Hide stats" : "Stats"}</button>
-        <button class="btn ghost" onclick="toggleLog()">${s.showLog ? "Hide log" : "Log"}</button>
+        ${DEBUG ? `<button class="btn ghost" onclick="toggleStats()">${s.showStats ? "Hide stats" : "Stats"}</button>
+        <button class="btn ghost" onclick="toggleLog()">${s.showLog ? "Hide log" : "Log"}</button>` : ""}
         <button class="btn ghost" onclick="toggleHelp()" title="How to use">?</button>
       </div>
     </div>`;
@@ -1156,7 +1159,7 @@ function renderPlay() {
     <p class="hint" style="font-size:11px">Status changes apply when a court picks its next game. To redo a game that hasn't started, use ↻ Remix.</p>
   </div>`;
 
-  if (s.showStats) {
+  if (DEBUG && s.showStats) {
     html += `<div class="card"><div class="label" style="margin-bottom:8px">Today</div>
       <div class="stat-row stat-head"><span>Player</span><span>Rating · games</span></div>`;
     for (const p of [...s.players].sort((a, b) => b.elo - a.elo)) {
@@ -1171,7 +1174,7 @@ function renderPlay() {
     html += `</div>`;
   }
 
-  if (s.showLog) {
+  if (DEBUG && s.showLog) {
     html += `<div class="card">
       <div class="card-head">
         <div class="label">Match history (${s.log.length})</div>
