@@ -775,7 +775,7 @@ const HELP = {
         "<b>plain</b> — normal, in the rotation.",
         "<b>⚡ keen</b> — wants to play next; gets priority for the next free spot.",
         "<b>☕ break</b> — resting; won't be picked until tapped back to normal.",
-        "<b>😮‍💨</b> next to a name means that person has played 2+ games in a row."
+        "<b>💃</b> next to a name means that person has played 2+ games in a row."
       ]],
       ["Win streaks", [
         "Win 3 or more games in a row and a badge appears next to your name: <b>⭐</b> 3 wins, <b>🔥</b> 4 wins, <b>👑</b> 5+ wins.",
@@ -818,7 +818,7 @@ const HELP = {
         "<b>bình thường</b> — vẫn trong vòng xoay.",
         "<b>⚡ keen</b> — muốn chơi tiếp; được ưu tiên vào trận kế.",
         "<b>☕ break</b> — đang nghỉ; không bị xếp trận cho tới khi bấm về bình thường.",
-        "<b>😮‍💨</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
+        "<b>💃</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
       ]],
       ["Chuỗi thắng", [
         "Thắng 3 trận liên tiếp trở lên sẽ có huy hiệu cạnh tên: <b>⭐</b> 3 trận, <b>🔥</b> 4 trận, <b>👑</b> 5 trận trở lên.",
@@ -924,7 +924,7 @@ function badges(p, tired, streaks) {
   let b = streakBadge(streaks.get(p.id) || 0);
   if (p.pendingRemove) b += ' <span title="Leaving after this game">🚪</span>';
   if (p.status === "keen") b += ' <span title="Wants to play">⚡</span>';
-  if (tired.has(p.id)) b += ' <span title="Played 2+ in a row">😮‍💨</span>';
+  if (tired.has(p.id)) b += ' <span title="Played 2+ in a row">💃</span>';
   return b;
 }
 
@@ -1192,14 +1192,14 @@ function renderPlay() {
     const cls = p.status === "break" ? " break" : p.status === "keen" ? " keen" : "";
     const icon = p.status === "break" ? "☕ " : p.status === "keen" ? "⚡ " : "";
     html += `<button class="chip${cls}" onclick="cycleStatus(${p.id})">
-      ${icon}${esc(p.name)}${streakBadge(streaks.get(p.id) || 0)}${tired.has(p.id) && p.status !== "break" ? " 😮‍💨" : ""}</button>`;
+      ${icon}${esc(p.name)}${streakBadge(streaks.get(p.id) || 0)}${tired.has(p.id) && p.status !== "break" ? " 💃" : ""}</button>`;
   }
   html += `</div>
     <div class="legend">
       <span>plain = normal</span>
       <span style="color:var(--keen)">⚡ = wants to play (priority)</span>
       <span style="color:var(--rest)">☕ = on break</span>
-      <span>😮‍💨 = 2+ games in a row</span>
+      <span>💃 = 2+ games in a row</span>
       <span>⭐ 3 · 🔥 4 · 👑 5+ wins in a row</span>
     </div>
     <p class="hint" style="font-size:11px">Status changes apply when a court picks its next game. To redo a game that hasn't started, use ↻ Remix.</p>
@@ -1214,7 +1214,7 @@ function renderPlay() {
         : p.status === "keen" ? ' <span style="color:var(--keen)">· keen ⚡</span>' : "";
       html += `<div class="stat-row">
         <span>${esc(p.name)} ${tierBadge(p.tier)}${isNewPlayer(p) ? ' <span class="elo">new</span>' : ""}${st}</span>
-        <span><b>${Math.round(p.elo)}</b> ${Math.round(d) ? `<span class="delta ${d > 0 ? "up" : "down"}">${signed(d)}</span>` : ""} · ${p.games}${p.consec >= 2 ? " 😮‍💨" : ""}</span>
+        <span><b>${Math.round(p.elo)}</b> ${Math.round(d) ? `<span class="delta ${d > 0 ? "up" : "down"}">${signed(d)}</span>` : ""} · ${p.games}${p.consec >= 2 ? " 💃" : ""}</span>
       </div>`;
     }
     html += `</div>`;
