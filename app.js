@@ -500,16 +500,14 @@ async function fillEmptyCourts() {
 }
 
 // ---------------- the waiting window ("hold") ----------------
-// A court that finishes while others are still playing waits (up to hold_minutes)
-// for a second court to finish, so the next games are drawn from a bigger pool.
+// A court that finishes while others are still playing waits until every
+// court has finished, then all of them are filled together from the full pool,
+// so every court runs on the same timeline. The first court to start waiting
+// sets the limit: after hold_minutes everything waiting is filled anyway.
 // The start time is saved on the court, so the countdown survives a refresh.
 async function holdCourtForSync(court) {
-  if (state.courts.some((c) => c !== court && c.holdStartedAt && !c.game)) {
-    await releaseHolds(); // another court was already waiting: release both now
-    return;
-  }
   const othersPlaying = state.courts.some((c) => c !== court && c.game && !c.closing);
-  if (!othersPlaying) { await fillCourt(court); return; }
+  if (!othersPlaying) { await releaseHolds(); return; } // last court done: fill them all
   const t = nowIso();
   await q(db.from("courts").update({ hold_started_at: t }).eq("id", court.id));
   court.holdStartedAt = t;
@@ -767,7 +765,7 @@ const HELP = {
       ["Playing a game", [
         "Each court shows two teams either side of the dashed net. When the game ends, tap <b>🏆 Won</b> under the winning side.",
         "A pop-up shows everyone's rating change. Tapped the wrong side? Tap <b>⇄ Flip result</b> in the pop-up. This works until one of those four players finishes another game.",
-        "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting for another court so there's a bigger pool to draw a fresh, fair game from. <b>▶ Fill now</b> skips the wait.",
+        "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting until every court has finished. Then all courts are filled together from the full pool, so games stay fresh and fair. <b>▶ Fill now</b> skips the wait.",
         "<b>↻ Remix</b> redraws one court's game (only before it starts). <b>↻ All</b> redraws every court."
       ]],
       ["Taking a break or asking to play", [
@@ -810,7 +808,7 @@ const HELP = {
       ["Khi chơi", [
         "Mỗi sân hiển thị hai đội ở hai bên lưới. Khi trận kết thúc, bấm <b>🏆 Won</b> ở dưới đội thắng.",
         "Một thông báo hiện thay đổi điểm của từng người. Bấm nhầm đội? Bấm <b>⇄ Flip result</b> trong thông báo. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
-        "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi thêm một sân xong để có nhiều người hơn, xếp trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
+        "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi cho tới khi tất cả các sân đều xong. Khi đó mọi sân được xếp trận cùng lúc từ toàn bộ người chơi, để trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
         "<b>↻ Remix</b> xếp lại trận của một sân (chỉ trước khi bắt đầu đánh). <b>↻ All</b> xếp lại tất cả các sân."
       ]],
       ["Nghỉ hoặc xin được chơi", [
@@ -1134,7 +1132,7 @@ function renderPlay() {
     if (!g) {
       const body = court.holdStartedAt
         ? `<div style="font-size:34px;margin:10px 0 6px">⏳</div>
-           <div style="font-size:15px">Holding — waiting for another court to finish</div>
+           <div style="font-size:15px">Holding — waiting for the other courts to finish</div>
            <div class="countdown" data-hold="${esc(court.holdStartedAt)}">${fmtLeft(Date.parse(court.holdStartedAt) + holdMs() - Date.now())}</div>
            <button class="mini-btn" style="margin-top:6px" onclick="fillNow()">▶ Fill now</button>`
         : `<div style="font-size:34px;margin:10px 0 6px">💤</div>
