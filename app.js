@@ -606,7 +606,7 @@ function showResultToast(e, corrected) {
   }).filter(Boolean);
   showToast("info",
     `<div class="toast-title">${corrected ? "Corrected — " : ""}Court ${e.courtNo}: ${winners.map((p) => esc(p.name)).join(" & ")} won</div>` +
-    `<div class="toast-body">${parts.join(" · ")}</div>` +
+    (DEBUG ? `<div class="toast-body">${parts.join(" · ")}</div>` : "") +
     (shouts.length ? `<div class="toast-body streak-shout">${shouts.join("<br>")}</div>` : ""),
     e.gameId);
 }
@@ -764,7 +764,7 @@ const HELP = {
       ]],
       ["Playing a game", [
         "Each court shows two teams either side of the dashed net. When the game ends, tap <b>🏆 Won</b> under the winning side.",
-        "A pop-up shows everyone's rating change. Tapped the wrong side? Tap <b>⇄ Flip result</b> in the pop-up. This works until one of those four players finishes another game.",
+        "A pop-up confirms who won. Tapped the wrong side? Tap <b>⇄ Flip result</b> in the pop-up. This works until one of those four players finishes another game.",
         "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting until every court has finished. Then all courts are filled together from the full pool, so games stay fresh and fair. <b>▶ Fill now</b> skips the wait.",
         "<b>↻ Remix</b> redraws one court's game (only before it starts). <b>↻ All</b> redraws every court."
       ]],
@@ -807,7 +807,7 @@ const HELP = {
       ]],
       ["Khi chơi", [
         "Mỗi sân hiển thị hai đội ở hai bên lưới. Khi trận kết thúc, bấm <b>🏆 Won</b> ở dưới đội thắng.",
-        "Một thông báo hiện thay đổi điểm của từng người. Bấm nhầm đội? Bấm <b>⇄ Flip result</b> trong thông báo. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
+        "Một thông báo hiện đội thắng. Bấm nhầm đội? Bấm <b>⇄ Flip result</b> trong thông báo. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
         "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi cho tới khi tất cả các sân đều xong. Khi đó mọi sân được xếp trận cùng lúc từ toàn bộ người chơi, để trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
         "<b>↻ Remix</b> xếp lại trận của một sân (chỉ trước khi bắt đầu đánh). <b>↻ All</b> xếp lại tất cả các sân."
       ]],
@@ -1015,7 +1015,7 @@ function renderSetup() {
     for (const p of s.roster) {
       const on = s.picked.has(p.id);
       html += `<button class="chip pick${on ? " on" : ""}" onclick="togglePick(${p.id})">
-        ${on ? "✓ " : ""}${esc(p.name)} ${tierBadge(p.tier)}<span class="elo">${Math.round(p.elo)}${isNewPlayer(p) ? " · new" : ""}</span></button>`;
+        ${on ? "✓ " : ""}${esc(p.name)} ${tierBadge(p.tier)}<span class="elo">${DEBUG ? Math.round(p.elo) + (isNewPlayer(p) ? " · new" : "") : isNewPlayer(p) ? "new" : ""}</span></button>`;
     }
     html += `</div>`;
   }
@@ -1062,7 +1062,7 @@ function renderManage() {
       : '<span style="color:var(--dim)">waiting</span>';
     html += `<div class="player-row" style="align-items:center">
       <div style="flex:1">
-        <div style="font-weight:700">${esc(p.name)} <span class="elo">${Math.round(p.elo)}</span></div>
+        <div style="font-weight:700">${esc(p.name)}${DEBUG ? ` <span class="elo">${Math.round(p.elo)}</span>` : ""}</div>
         <div style="font-size:11px">${status}</div>
       </div>
       <button class="mini-btn" onclick="removePlayer(${p.id})">${p.pendingRemove ? "Undo" : "Remove"}</button>
