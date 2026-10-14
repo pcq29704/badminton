@@ -70,6 +70,22 @@ const nowIso = () => new Date().toISOString();
 const seedTiers = () => state.tiers.filter((t) => t.seed_elo != null);
 const tierBadge = (code) => (code ? `<span class="tier t-${esc(code)}">${esc(code)}</span>` : "");
 
+// ---------------- win streaks (worked out from today's log) ----------------
+const STREAK_MIN = 3; // wins in a row before a streak is celebrated
+// Win streak per player after the first `upTo` games of today's log
+function winStreaks(upTo = state.log.length) {
+  const m = new Map();
+  for (const e of state.log.slice(0, upTo)) {
+    const [win, lose] = e.winner === "A" ? [e.teamA, e.teamB] : [e.teamB, e.teamA];
+    for (const p of win) m.set(p.id, (m.get(p.id) || 0) + 1);
+    for (const p of lose) m.set(p.id, 0);
+  }
+  return m;
+}
+const streakIcon = (n) => (n >= 5 ? "👑" : n >= 4 ? "🔥" : n >= STREAK_MIN ? "⭐" : "");
+const streakBadge = (n) => (n >= STREAK_MIN
+  ? ` <span class="streak" title="${n} wins in a row">${streakIcon(n)}${n}</span>` : "");
+
 const PAIRINGS = [
   [[0, 1], [2, 3]],
   [[0, 2], [1, 3]],
@@ -582,9 +598,18 @@ function showResultToast(e, corrected) {
     const d = p.after - p.before;
     return `${esc(p.name)} <span class="delta ${d >= 0 ? "up" : "down"}">${signed(d)}</span>`;
   });
+  const idx = state.log.indexOf(e);
+  const before = winStreaks(idx), after = winStreaks(idx + 1);
+  const shouts = [...e.teamA, ...e.teamB].map((p) => {
+    const n = after.get(p.id) || 0, was = before.get(p.id) || 0;
+    if (n >= STREAK_MIN) return `${streakIcon(n)} <b>${esc(p.name)}</b> is on a ${n}-win streak!`;
+    if (was >= STREAK_MIN) return `💪 <b>${esc(p.name)}</b>'s streak ended at ${was}. Great run!`;
+    return "";
+  }).filter(Boolean);
   showToast("info",
     `<div class="toast-title">${corrected ? "Corrected — " : ""}Court ${e.courtNo}: ${winners.map((p) => esc(p.name)).join(" & ")} won</div>` +
-    `<div class="toast-body">${parts.join(" · ")}</div>`,
+    `<div class="toast-body">${parts.join(" · ")}</div>` +
+    (shouts.length ? `<div class="toast-body streak-shout">${shouts.join("<br>")}</div>` : ""),
     e.gameId);
 }
 
@@ -750,7 +775,11 @@ const HELP = {
         "<b>plain</b> — normal, in the rotation.",
         "<b>⚡ keen</b> — wants to play next; gets priority for the next free spot.",
         "<b>☕ break</b> — resting; won't be picked until tapped back to normal.",
-        "<b>🔥</b> next to a name means that person has played 2+ games in a row."
+        "<b>😮‍💨</b> next to a name means that person has played 2+ games in a row."
+      ]],
+      ["Win streaks", [
+        "Win 3 or more games in a row and a badge appears next to your name: <b>⭐</b> 3 wins, <b>🔥</b> 4 wins, <b>👑</b> 5+ wins.",
+        "Everyone on a streak is listed in the <b>On a streak</b> banner at the top until they lose a game."
       ]],
       ["Ratings and tiers", [
         "Everyone has an Elo rating. Winners gain points, losers lose them — more for an upset, fewer for an expected win. Both players on a team get the same change.",
@@ -789,7 +818,11 @@ const HELP = {
         "<b>bình thường</b> — vẫn trong vòng xoay.",
         "<b>⚡ keen</b> — muốn chơi tiếp; được ưu tiên vào trận kế.",
         "<b>☕ break</b> — đang nghỉ; không bị xếp trận cho tới khi bấm về bình thường.",
-        "<b>🔥</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
+        "<b>😮‍💨</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
+      ]],
+      ["Chuỗi thắng", [
+        "Thắng 3 trận liên tiếp trở lên sẽ có huy hiệu cạnh tên: <b>⭐</b> 3 trận, <b>🔥</b> 4 trận, <b>👑</b> 5 trận trở lên.",
+        "Những người đang có chuỗi thắng hiện ở khung <b>On a streak</b> phía trên cho tới khi thua một trận."
       ]],
       ["Điểm Elo và tier", [
         "Mỗi người có điểm Elo. Thắng thì được cộng, thua thì bị trừ — thắng bất ngờ được nhiều hơn, thắng như dự đoán được ít hơn. Hai người cùng đội nhận cùng mức thay đổi.",
@@ -887,11 +920,11 @@ function courtCols(n) {
   return best;
 }
 
-function badges(p, tired) {
-  let b = "";
+function badges(p, tired, streaks) {
+  let b = streakBadge(streaks.get(p.id) || 0);
   if (p.pendingRemove) b += ' <span title="Leaving after this game">🚪</span>';
   if (p.status === "keen") b += ' <span title="Wants to play">⚡</span>';
-  if (tired.has(p.id)) b += ' <span title="Played 2+ in a row">🔥</span>';
+  if (tired.has(p.id)) b += ' <span title="Played 2+ in a row">😮‍💨</span>';
   return b;
 }
 
@@ -1064,6 +1097,9 @@ function renderPlay() {
   const busy = playingIds();
   const waiting = s.players.filter((p) => p.status !== "break" && !busy.has(p.id));
   const tired = new Set(s.players.filter((p) => p.consec >= 2).map((p) => p.id));
+  const streaks = winStreaks();
+  const hot = s.players.map((p) => ({ p, n: streaks.get(p.id) || 0 }))
+    .filter((x) => x.n >= STREAK_MIN).sort((a, b) => b.n - a.n);
 
   let html = `
     <div class="header-bar">
@@ -1082,6 +1118,15 @@ function renderPlay() {
     </div>`;
 
   if (s.showHelp) html += renderHelp();
+
+  // stays on screen until each player loses
+  if (hot.length) {
+    html += `<div class="streak-banner">
+      <div class="label">On a streak</div>
+      <div class="streak-list">${hot.map(({ p, n }) =>
+        `<span class="streak-item">${streakIcon(n)} <b>${esc(p.name)}</b> · ${n} wins in a row</span>`).join("")}</div>
+    </div>`;
+  }
 
   html += `<div class="courts-grid" style="grid-template-columns: repeat(${courtCols(s.courts.length)}, 1fr)">`;
   for (const court of s.courts) {
@@ -1107,7 +1152,7 @@ function renderPlay() {
       `<div class="team${right ? " right" : ""}">` +
       team.map((id) => {
         const p = byId(id) || { id, name: nameOf(id), status: "normal" };
-        return `<div class="p">${esc(p.name)}${badges(p, tired)}</div>`;
+        return `<div class="p">${esc(p.name)}${badges(p, tired, streaks)}</div>`;
       }).join("") + `</div>`;
     html += `<div class="match-card">
       <div class="court-head">
@@ -1134,7 +1179,7 @@ function renderPlay() {
   if (waiting.length > 0) {
     html += `<div class="card" style="background:var(--card-lite)">
       <div class="label" style="margin-bottom:6px">Waiting to play</div>
-      <div style="font-size:18px;font-weight:600">${waiting.map((p) => esc(p.name) + (p.status === "keen" ? " ⚡" : "")).join(", ")}</div>
+      <div style="font-size:18px;font-weight:600">${waiting.map((p) => esc(p.name) + streakBadge(streaks.get(p.id) || 0) + (p.status === "keen" ? " ⚡" : "")).join(", ")}</div>
     </div>`;
   }
 
@@ -1147,14 +1192,15 @@ function renderPlay() {
     const cls = p.status === "break" ? " break" : p.status === "keen" ? " keen" : "";
     const icon = p.status === "break" ? "☕ " : p.status === "keen" ? "⚡ " : "";
     html += `<button class="chip${cls}" onclick="cycleStatus(${p.id})">
-      ${icon}${esc(p.name)}${tired.has(p.id) && p.status !== "break" ? " 🔥" : ""}</button>`;
+      ${icon}${esc(p.name)}${streakBadge(streaks.get(p.id) || 0)}${tired.has(p.id) && p.status !== "break" ? " 😮‍💨" : ""}</button>`;
   }
   html += `</div>
     <div class="legend">
       <span>plain = normal</span>
       <span style="color:var(--keen)">⚡ = wants to play (priority)</span>
       <span style="color:var(--rest)">☕ = on break</span>
-      <span>🔥 = 2+ games in a row</span>
+      <span>😮‍💨 = 2+ games in a row</span>
+      <span>⭐ 3 · 🔥 4 · 👑 5+ wins in a row</span>
     </div>
     <p class="hint" style="font-size:11px">Status changes apply when a court picks its next game. To redo a game that hasn't started, use ↻ Remix.</p>
   </div>`;
@@ -1168,7 +1214,7 @@ function renderPlay() {
         : p.status === "keen" ? ' <span style="color:var(--keen)">· keen ⚡</span>' : "";
       html += `<div class="stat-row">
         <span>${esc(p.name)} ${tierBadge(p.tier)}${isNewPlayer(p) ? ' <span class="elo">new</span>' : ""}${st}</span>
-        <span><b>${Math.round(p.elo)}</b> ${Math.round(d) ? `<span class="delta ${d > 0 ? "up" : "down"}">${signed(d)}</span>` : ""} · ${p.games}${p.consec >= 2 ? " 🔥" : ""}</span>
+        <span><b>${Math.round(p.elo)}</b> ${Math.round(d) ? `<span class="delta ${d > 0 ? "up" : "down"}">${signed(d)}</span>` : ""} · ${p.games}${p.consec >= 2 ? " 😮‍💨" : ""}</span>
       </div>`;
     }
     html += `</div>`;

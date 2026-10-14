@@ -152,6 +152,17 @@ select {
 .stat-head { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
 .mini-btn.small { padding: 3px 9px; font-size: 11px; }
 
+/* win streaks */
+.streak { font-size: 0.75em; font-weight: 800; color: #D97706; white-space: nowrap; }
+.streak-banner {
+  background: linear-gradient(90deg, #FFF7E0, #FFEFD6); border: 2px solid #F5C451;
+  border-radius: 18px; padding: 10px 14px; margin-bottom: 14px; box-shadow: var(--shadow);
+}
+.streak-banner .label { color: #B45309; margin-bottom: 4px; }
+.streak-list { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 16px; }
+.streak-item { white-space: nowrap; }
+.streak-shout { margin-top: 6px; font-weight: 700; color: #B45309; }
+
 /* toast + saving */
 .toast {
   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
