@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { HELP } from "../help";
-import { profileHref, signed } from "../helpers";
+import { STREAK_MIN, isDebug, profileHref, signed, streakIcon } from "../helpers";
 
 export function Header({ subtitle }) {
   return <header id="app-header"><div style={{ fontSize: 46 }}>🏸</div><h1>Court Balancer</h1><p className="sub">{subtitle}</p></header>;
@@ -10,6 +10,10 @@ export function ProfileName({ player }) {
   return player.username
     ? <a className="player-profile-name" href={profileHref(player.username)}>{player.name}</a>
     : player.name;
+}
+
+export function StreakBadge({ count }) {
+  return count >= STREAK_MIN ? <> <span className="streak" title={`${count} wins in a row`}>{streakIcon(count)}{count}</span></> : null;
 }
 
 export function TierBadge({ code }) {
@@ -48,8 +52,10 @@ export function Toast({ toast, actions }) {
     <button className="toast-x" onClick={actions.hideToast} aria-label="Close">✕</button>
     {entry ? <>
       <div className="toast-title">{toast.corrected ? "Corrected — " : ""}Court {entry.courtNo} ({entry.ranked ? "Ranked" : "Unranked"}): {winners.map((p) => p.name).join(" & ")} won</div>
-      <div className="toast-body">{entry.ranked ? [...entry.teamA, ...entry.teamB].map((p, index) =>
-        <Fragment key={p.id}>{index > 0 && " · "}{p.name} <Delta value={p.after - p.before} /></Fragment>) : "Unranked — ratings unchanged"}</div>
+      {isDebug() && <div className="toast-body">{entry.ranked ? [...entry.teamA, ...entry.teamB].map((p, index) =>
+        <Fragment key={p.id}>{index > 0 && " · "}{p.name} <Delta value={p.after - p.before} /></Fragment>) : "Unranked — ratings unchanged"}</div>}
+      {toast.shouts?.length > 0 && <div className="toast-body streak-shout">{toast.shouts.map((shout, index) =>
+        <Fragment key={index}>{index > 0 && <br />}{shout.icon} <b>{shout.name}</b>{shout.text}</Fragment>)}</div>}
     </> : <div style={{ whiteSpace: "pre-line" }}>{toast.message}</div>}
     {toast.gameId && <button className="mini-btn" style={{ marginTop: 8 }} onClick={() => actions.correctResult(toast.gameId)}>⇄ Wrong side? Flip result</button>}
   </div>;

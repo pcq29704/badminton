@@ -1,4 +1,5 @@
 import { playingIds } from "../matchmaking";
+import { isDebug } from "../helpers";
 import { PlayerForm, ProfileName } from "./Shared";
 
 export default function ManagePlayers({ state, actions }) {
@@ -10,7 +11,7 @@ export default function ManagePlayers({ state, actions }) {
     {state.players.map((player) => {
       const status = player.pendingRemove ? ["var(--danger)", "leaving after this game…"] : player.status === "break" ? ["var(--rest)", "on break"] : busy.has(player.id) ? ["var(--keen)", "on court"] : ["var(--dim)", "waiting"];
       return <div className="player-row" style={{ alignItems: "center" }} key={player.id}>
-        <div style={{ flex: 1 }}><div style={{ fontWeight: 700 }}><ProfileName player={player} /> <span className="elo">{Math.round(player.elo)}</span></div><div style={{ fontSize: 11, color: status[0] }}>{status[1]}</div></div>
+        <div style={{ flex: 1 }}><div style={{ fontWeight: 700 }}><ProfileName player={player} /> {isDebug() && <span className="elo">{Math.round(player.elo)}</span>}</div><div style={{ fontSize: 11, color: status[0] }}>{status[1]}</div></div>
         <button className="mini-btn" onClick={() => actions.removePlayer(player.id)}>{player.pendingRemove ? "Undo" : "Remove"}</button>
       </div>;
     })}

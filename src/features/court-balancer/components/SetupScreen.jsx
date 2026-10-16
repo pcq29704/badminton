@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { profileHref } from "../helpers";
+import { isDebug, profileHref } from "../helpers";
 import { Header, HelpPanel, PlayerForm, TierBadge, isNewPlayer } from "./Shared";
 
 export default function SetupScreen({ state, actions }) {
@@ -19,7 +19,7 @@ export default function SetupScreen({ state, actions }) {
       {!state.roster.length ? <p className="hint" style={{ margin: 0 }}>No players yet — add your group below. You only do this once.</p>
         : <div className="chips">{state.roster.map((player) => <Fragment key={player.id}>
           <button className={`chip pick${state.picked.has(player.id) ? " on" : ""}`} onClick={() => actions.togglePick(player.id)}>
-            {state.picked.has(player.id) ? "✓ " : ""}{player.name} <TierBadge code={player.tier} /><span className="elo">{Math.round(player.elo)}{isNewPlayer(player, state.settings) ? " · new" : ""}</span>
+            {state.picked.has(player.id) ? "✓ " : ""}{player.name} <TierBadge code={player.tier} /><span className="elo">{isDebug() ? `${Math.round(player.elo)}${isNewPlayer(player, state.settings) ? " · new" : ""}` : isNewPlayer(player, state.settings) ? "new" : ""}</span>
           </button>
           {player.username && <a className="mini-btn profile-link" href={profileHref(player.username)} aria-label={`Profile for ${player.username}`} title="Player profile">↗</a>}
         </Fragment>)}</div>}

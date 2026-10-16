@@ -3,7 +3,7 @@ import { Oops, query } from "./repository";
 import { playingIds as getPlayingIds, pickGame as chooseGame } from "./matchmaking";
 import { recordToday as addHistory, makeLogEntry as buildLog, applyRatingRows as applyRatings, logAsText as formatLog } from "./history";
 import { loadBasics as fetchBasics, loadRoster as fetchRoster, loadSession as fetchSession } from "./session";
-import { matchKey, usernameFromName } from "./helpers";
+import { matchKey, usernameFromName, winStreaks, streakIcon, STREAK_MIN } from "./helpers";
 
 // Commands keep a current working state for sequential court fills. React only
 // receives detached snapshots, so an in-flight command cannot mutate its view.
@@ -249,16 +249,14 @@ export function createCourtBalancer(db, onChange) {
   }
 
   // ---------------- the waiting window ("hold") ----------------
-  // A court that finishes while others are still playing waits (up to hold_minutes)
-  // for a second court to finish, so the next games are drawn from a bigger pool.
+  // A court that finishes while others are still playing waits until every
+  // court has finished, then all of them are filled together from the full pool,
+  // so every court runs on the same timeline. The first court to start waiting
+  // sets the limit: after hold_minutes everything waiting is filled anyway.
   // The start time is saved on the court, so the countdown survives a refresh.
   async function holdCourtForSync(court) {
-    if (state.courts.some((c) => c !== court && c.holdStartedAt && !c.game)) {
-      await releaseHolds(); // another court was already waiting: release both now
-      return;
-    }
     const othersPlaying = state.courts.some((c) => c !== court && c.game && !c.closing);
-    if (!othersPlaying) { await fillCourt(court); return; }
+    if (!othersPlaying) { await releaseHolds(); return; } // last court done: fill them all
     const t = nowIso();
     await q(db.from("courts").update({ hold_started_at: t }).eq("id", court.id));
     court.holdStartedAt = t;
@@ -337,6 +335,14 @@ export function createCourtBalancer(db, onChange) {
     showToast("info", "", entry.gameId);
     state.toast.result = structuredClone(entry);
     state.toast.corrected = corrected;
+    const idx = state.log.findIndex((x) => x.gameId === entry.gameId);
+    const before = winStreaks(state.log, idx), after = winStreaks(state.log, idx + 1);
+    state.toast.shouts = [...entry.teamA, ...entry.teamB].map((p) => {
+      const n = after.get(p.id) || 0, was = before.get(p.id) || 0;
+      if (n >= STREAK_MIN) return { icon: streakIcon(n), name: p.name, text: ` is on a ${n}-win streak!` };
+      if (was >= STREAK_MIN) return { icon: "💪", name: p.name, text: `'s streak ended at ${was}. Great run!` };
+      return null;
+    }).filter(Boolean);
   }
 
   // Fix a result where the wrong side was tapped

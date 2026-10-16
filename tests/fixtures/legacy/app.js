@@ -22,6 +22,9 @@ const W = {
 };
 const HISTORY_SESSIONS = 3; // how many previous sessions feed repeat-avoidance
 
+// Stats and Log panels are for development/debugging only. Open the app with ?debug in the URL to show them.
+const DEBUG = new URLSearchParams(location.search).has("debug");
+
 // ---------------- state ----------------
 let state = {
   phase: "loading",       // loading | login | not-organiser | error | setup | play
@@ -73,6 +76,22 @@ const profileLink = (username, label = "Profile") => username
   ? `<a class="mini-btn profile-link" href="${esc(profileHref(username))}" aria-label="Profile for ${esc(username)}" title="Player profile">${esc(label)}</a>` : "";
 const profileName = (p) => p?.username
   ? `<a class="player-profile-name" href="${esc(profileHref(p.username))}">${esc(p.name)}</a>` : esc(p?.name || "?");
+
+// ---------------- win streaks (worked out from today's log) ----------------
+const STREAK_MIN = 3; // wins in a row before a streak is celebrated
+// Win streak per player after the first `upTo` games of today's log
+function winStreaks(upTo = state.log.length) {
+  const m = new Map();
+  for (const e of state.log.slice(0, upTo)) {
+    const [win, lose] = e.winner === "A" ? [e.teamA, e.teamB] : [e.teamB, e.teamA];
+    for (const p of win) m.set(p.id, (m.get(p.id) || 0) + 1);
+    for (const p of lose) m.set(p.id, 0);
+  }
+  return m;
+}
+const streakIcon = (n) => (n >= 5 ? "👑" : n >= 4 ? "🔥" : n >= STREAK_MIN ? "⭐" : "");
+const streakBadge = (n) => (n >= STREAK_MIN
+  ? ` <span class="streak" title="${n} wins in a row">${streakIcon(n)}${n}</span>` : "");
 
 const PAIRINGS = [
   [[0, 1], [2, 3]],
@@ -512,16 +531,14 @@ async function fillEmptyCourts() {
 }
 
 // ---------------- the waiting window ("hold") ----------------
-// A court that finishes while others are still playing waits (up to hold_minutes)
-// for a second court to finish, so the next games are drawn from a bigger pool.
+// A court that finishes while others are still playing waits until every
+// court has finished, then all of them are filled together from the full pool,
+// so every court runs on the same timeline. The first court to start waiting
+// sets the limit: after hold_minutes everything waiting is filled anyway.
 // The start time is saved on the court, so the countdown survives a refresh.
 async function holdCourtForSync(court) {
-  if (state.courts.some((c) => c !== court && c.holdStartedAt && !c.game)) {
-    await releaseHolds(); // another court was already waiting: release both now
-    return;
-  }
   const othersPlaying = state.courts.some((c) => c !== court && c.game && !c.closing);
-  if (!othersPlaying) { await fillCourt(court); return; }
+  if (!othersPlaying) { await releaseHolds(); return; } // last court done: fill them all
   const t = nowIso();
   await q(db.from("courts").update({ hold_started_at: t }).eq("id", court.id));
   court.holdStartedAt = t;
@@ -611,9 +628,18 @@ function showResultToast(e, corrected) {
     const d = p.after - p.before;
     return `${esc(p.name)} <span class="delta ${d >= 0 ? "up" : "down"}">${signed(d)}</span>`;
   }).join(" · ") : "Unranked — ratings unchanged";
+  const idx = state.log.indexOf(e);
+  const before = winStreaks(idx), after = winStreaks(idx + 1);
+  const shouts = [...e.teamA, ...e.teamB].map((p) => {
+    const n = after.get(p.id) || 0, was = before.get(p.id) || 0;
+    if (n >= STREAK_MIN) return `${streakIcon(n)} <b>${esc(p.name)}</b> is on a ${n}-win streak!`;
+    if (was >= STREAK_MIN) return `💪 <b>${esc(p.name)}</b>'s streak ended at ${was}. Great run!`;
+    return "";
+  }).filter(Boolean);
   showToast("info",
     `<div class="toast-title">${corrected ? "Corrected — " : ""}Court ${e.courtNo} (${e.ranked ? "Ranked" : "Unranked"}): ${winners.map((p) => esc(p.name)).join(" & ")} won</div>` +
-    `<div class="toast-body">${parts}</div>`,
+    (DEBUG ? `<div class="toast-body">${parts}</div>` : "") +
+    (shouts.length ? `<div class="toast-body streak-shout">${shouts.join("<br>")}</div>` : ""),
     e.gameId);
 }
 
@@ -779,8 +805,8 @@ const HELP = {
       ["Playing a game", [
         "Each court shows two teams either side of the dashed net. When the game ends, tap <b>🏆 Won</b> under the winning side.",
         "New matches are unranked by default. Use the ranked toggle to make future matches ranked; matches already on court keep their mode.",
-        "Ranked results show everyone's rating change. Unranked results record the winner without changing ratings. Tap <b>⇄ Flip result</b> in the pop-up or Log if you tapped the wrong side.",
-        "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting for another court so there's a bigger pool to draw a fresh, fair game from. <b>▶ Fill now</b> skips the wait.",
+        "Ranked results update ratings. Unranked results record the winner without changing ratings. Tapped the wrong side? Tap <b>⇄ Flip result</b> in the pop-up. This works until one of those four players finishes another game.",
+        "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting until every court has finished. Then all courts are filled together from the full pool, so games stay fresh and fair. <b>▶ Fill now</b> skips the wait.",
         "<b>↻ Remix</b> redraws one court's game (only before it starts). <b>↻ All</b> redraws every court."
       ]],
       ["Taking a break or asking to play", [
@@ -788,7 +814,11 @@ const HELP = {
         "<b>plain</b> — normal, in the rotation.",
         "<b>⚡ keen</b> — wants to play next; gets priority for the next free spot.",
         "<b>☕ break</b> — resting; won't be picked until tapped back to normal.",
-        "<b>🔥</b> next to a name means that person has played 2+ games in a row."
+        "<b>💃</b> next to a name means that person has played 2+ games in a row."
+      ]],
+      ["Win streaks", [
+        "Win 3 or more games in a row and a badge appears next to your name: <b>⭐</b> 3 wins, <b>🔥</b> 4 wins, <b>👑</b> 5+ wins.",
+        "Everyone on a streak is listed in the <b>On a streak</b> banner at the top until they lose a game."
       ]],
       ["Ratings and tiers", [
         "Everyone has an Elo rating. Only ranked results change it: winners gain points and losers lose them. Both players on a team get the same change.",
@@ -819,8 +849,8 @@ const HELP = {
       ["Khi chơi", [
         "Mỗi sân hiển thị hai đội ở hai bên lưới. Khi trận kết thúc, bấm <b>🏆 Won</b> ở dưới đội thắng.",
         "Trận mới mặc định không tính điểm. Bật nút Ranked để các trận tạo sau đó được tính điểm; trận đang trên sân giữ nguyên chế độ.",
-        "Trận Ranked hiện thay đổi điểm của từng người. Trận Unranked chỉ lưu đội thắng, không đổi điểm. Bấm <b>⇄ Flip result</b> để sửa đội thắng.",
-        "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi thêm một sân xong để có nhiều người hơn, xếp trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
+        "Trận Ranked cập nhật điểm. Trận Unranked chỉ lưu đội thắng, không đổi điểm. Bấm nhầm đội? Bấm <b>⇄ Flip result</b> trong thông báo. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
+        "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi cho tới khi tất cả các sân đều xong. Khi đó mọi sân được xếp trận cùng lúc từ toàn bộ người chơi, để trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
         "<b>↻ Remix</b> xếp lại trận của một sân (chỉ trước khi bắt đầu đánh). <b>↻ All</b> xếp lại tất cả các sân."
       ]],
       ["Nghỉ hoặc xin được chơi", [
@@ -828,7 +858,11 @@ const HELP = {
         "<b>bình thường</b> — vẫn trong vòng xoay.",
         "<b>⚡ keen</b> — muốn chơi tiếp; được ưu tiên vào trận kế.",
         "<b>☕ break</b> — đang nghỉ; không bị xếp trận cho tới khi bấm về bình thường.",
-        "<b>🔥</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
+        "<b>💃</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
+      ]],
+      ["Chuỗi thắng", [
+        "Thắng 3 trận liên tiếp trở lên sẽ có huy hiệu cạnh tên: <b>⭐</b> 3 trận, <b>🔥</b> 4 trận, <b>👑</b> 5 trận trở lên.",
+        "Những người đang có chuỗi thắng hiện ở khung <b>On a streak</b> phía trên cho tới khi thua một trận."
       ]],
       ["Điểm Elo và tier", [
         "Mỗi người có điểm Elo. Chỉ trận Ranked mới đổi điểm: thắng được cộng, thua bị trừ. Hai người cùng đội nhận cùng mức thay đổi.",
@@ -927,11 +961,11 @@ function courtCols(n) {
   return best;
 }
 
-function badges(p, tired) {
-  let b = "";
+function badges(p, tired, streaks) {
+  let b = streakBadge(streaks.get(p.id) || 0);
   if (p.pendingRemove) b += ' <span title="Leaving after this game">🚪</span>';
   if (p.status === "keen") b += ' <span title="Wants to play">⚡</span>';
-  if (tired.has(p.id)) b += ' <span title="Played 2+ in a row">🔥</span>';
+  if (tired.has(p.id)) b += ' <span title="Played 2+ in a row">💃</span>';
   return b;
 }
 
@@ -1024,7 +1058,7 @@ function renderSetup() {
     for (const p of s.roster) {
       const on = s.picked.has(p.id);
       html += `<button class="chip pick${on ? " on" : ""}" onclick="togglePick(${p.id})">
-        ${on ? "✓ " : ""}${esc(p.name)} ${tierBadge(p.tier)}<span class="elo">${Math.round(p.elo)}${isNewPlayer(p) ? " · new" : ""}</span></button>${profileLink(p.username, "↗")}`;
+        ${on ? "✓ " : ""}${esc(p.name)} ${tierBadge(p.tier)}<span class="elo">${DEBUG ? Math.round(p.elo) + (isNewPlayer(p) ? " · new" : "") : isNewPlayer(p) ? "new" : ""}</span></button>${profileLink(p.username, "↗")}`;
     }
     html += `</div>`;
   }
@@ -1075,7 +1109,7 @@ function renderManage() {
       : '<span style="color:var(--dim)">waiting</span>';
     html += `<div class="player-row" style="align-items:center">
       <div style="flex:1">
-        <div style="font-weight:700">${profileName(p)} <span class="elo">${Math.round(p.elo)}</span></div>
+        <div style="font-weight:700">${profileName(p)}${DEBUG ? ` <span class="elo">${Math.round(p.elo)}</span>` : ""}</div>
         <div style="font-size:11px">${status}</div>
       </div>
       <button class="mini-btn" onclick="removePlayer(${p.id})">${p.pendingRemove ? "Undo" : "Remove"}</button>
@@ -1111,6 +1145,9 @@ function renderPlay() {
   const busy = playingIds();
   const waiting = s.players.filter((p) => p.status !== "break" && !busy.has(p.id));
   const tired = new Set(s.players.filter((p) => p.consec >= 2).map((p) => p.id));
+  const streaks = winStreaks();
+  const hot = s.players.map((p) => ({ p, n: streaks.get(p.id) || 0 }))
+    .filter((x) => x.n >= STREAK_MIN).sort((a, b) => b.n - a.n);
 
   let html = `
     <div class="header-bar">
@@ -1123,13 +1160,22 @@ function renderPlay() {
         <button class="btn ghost" onclick="addCourt()">+ Court</button>
         <button class="btn ghost" onclick="reshuffleAll()">↻ All</button>
         <button class="btn ghost" onclick="toggleManage()">${s.showManage ? "Hide players" : "Players"}</button>
-        <button class="btn ghost" onclick="toggleStats()">${s.showStats ? "Hide stats" : "Stats"}</button>
-        <button class="btn ghost" onclick="toggleLog()">${s.showLog ? "Hide log" : "Log"}</button>
+        ${DEBUG ? `<button class="btn ghost" onclick="toggleStats()">${s.showStats ? "Hide stats" : "Stats"}</button>
+        <button class="btn ghost" onclick="toggleLog()">${s.showLog ? "Hide log" : "Log"}</button>` : ""}
         <button class="btn ghost" onclick="toggleHelp()" title="How to use">?</button>
       </div>
     </div>`;
 
   if (s.showHelp) html += renderHelp();
+
+  // stays on screen until each player loses
+  if (hot.length) {
+    html += `<div class="streak-banner">
+      <div class="label">On a streak</div>
+      <div class="streak-list">${hot.map(({ p, n }) =>
+        `<span class="streak-item">${streakIcon(n)} <b>${esc(p.name)}</b> · ${n} wins in a row</span>`).join("")}</div>
+    </div>`;
+  }
 
   html += `<div class="courts-grid" style="grid-template-columns: repeat(${courtCols(s.courts.length)}, 1fr)">`;
   for (const court of s.courts) {
@@ -1137,7 +1183,7 @@ function renderPlay() {
     if (!g) {
       const body = court.holdStartedAt
         ? `<div style="font-size:34px;margin:10px 0 6px">⏳</div>
-           <div style="font-size:15px">Holding — waiting for another court to finish</div>
+           <div style="font-size:15px">Holding — waiting for the other courts to finish</div>
            <div class="countdown" data-hold="${esc(court.holdStartedAt)}">${fmtLeft(Date.parse(court.holdStartedAt) + holdMs() - Date.now())}</div>
            <button class="mini-btn" style="margin-top:6px" onclick="fillNow()">▶ Fill now</button>`
         : `<div style="font-size:34px;margin:10px 0 6px">💤</div>
@@ -1155,7 +1201,7 @@ function renderPlay() {
       `<div class="team${right ? " right" : ""}">` +
       team.map((id) => {
         const p = byId(id) || { id, name: nameOf(id), status: "normal" };
-        return `<div class="p">${profileName(p)}${badges(p, tired)}</div>`;
+        return `<div class="p">${profileName(p)}${badges(p, tired, streaks)}</div>`;
       }).join("") + `</div>`;
     html += `<div class="match-card">
       <div class="court-head">
@@ -1182,7 +1228,7 @@ function renderPlay() {
   if (waiting.length > 0) {
     html += `<div class="card" style="background:var(--card-lite)">
       <div class="label" style="margin-bottom:6px">Waiting to play</div>
-      <div style="font-size:18px;font-weight:600">${waiting.map((p) => profileName(p) + (p.status === "keen" ? " ⚡" : "")).join(", ")}</div>
+      <div style="font-size:18px;font-weight:600">${waiting.map((p) => profileName(p) + streakBadge(streaks.get(p.id) || 0) + (p.status === "keen" ? " ⚡" : "")).join(", ")}</div>
     </div>`;
   }
 
@@ -1195,19 +1241,20 @@ function renderPlay() {
     const cls = p.status === "break" ? " break" : p.status === "keen" ? " keen" : "";
     const icon = p.status === "break" ? "☕ " : p.status === "keen" ? "⚡ " : "";
     html += `<button class="chip${cls}" onclick="cycleStatus(${p.id})">
-      ${icon}${esc(p.name)}${tired.has(p.id) && p.status !== "break" ? " 🔥" : ""}</button>`;
+      ${icon}${esc(p.name)}${streakBadge(streaks.get(p.id) || 0)}${tired.has(p.id) && p.status !== "break" ? " 💃" : ""}</button>`;
   }
   html += `</div>
     <div class="legend">
       <span>plain = normal</span>
       <span style="color:var(--keen)">⚡ = wants to play (priority)</span>
       <span style="color:var(--rest)">☕ = on break</span>
-      <span>🔥 = 2+ games in a row</span>
+      <span>💃 = 2+ games in a row</span>
+      <span>⭐ 3 · 🔥 4 · 👑 5+ wins in a row</span>
     </div>
     <p class="hint" style="font-size:11px">Status changes apply when a court picks its next game. To redo a game that hasn't started, use ↻ Remix.</p>
   </div>`;
 
-  if (s.showStats) {
+  if (DEBUG && s.showStats) {
     html += `<div class="card"><div class="label" style="margin-bottom:8px">Today</div>
       <div class="stat-row stat-head"><span>Player</span><span>Rating · games</span></div>`;
     for (const p of [...s.players].sort((a, b) => b.elo - a.elo)) {
@@ -1216,13 +1263,13 @@ function renderPlay() {
         : p.status === "keen" ? ' <span style="color:var(--keen)">· keen ⚡</span>' : "";
       html += `<div class="stat-row">
         <span>${esc(p.name)} ${tierBadge(p.tier)}${isNewPlayer(p) ? ' <span class="elo">new</span>' : ""}${st}</span>
-        <span><b>${Math.round(p.elo)}</b> ${Math.round(d) ? `<span class="delta ${d > 0 ? "up" : "down"}">${signed(d)}</span>` : ""} · ${p.games}${p.consec >= 2 ? " 🔥" : ""}</span>
+        <span><b>${Math.round(p.elo)}</b> ${Math.round(d) ? `<span class="delta ${d > 0 ? "up" : "down"}">${signed(d)}</span>` : ""} · ${p.games}${p.consec >= 2 ? " 💃" : ""}</span>
       </div>`;
     }
     html += `</div>`;
   }
 
-  if (s.showLog) {
+  if (DEBUG && s.showLog) {
     html += `<div class="card">
       <div class="card-head">
         <div class="label">Match history (${s.log.length})</div>

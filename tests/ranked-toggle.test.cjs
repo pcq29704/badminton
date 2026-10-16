@@ -48,6 +48,7 @@ function appFixture() {
     SUPABASE_URL: 'test', SUPABASE_ANON_KEY: 'test',
     setInterval() {}, setTimeout() { return 1; }, clearTimeout() {},
     console, Date, Math, confirm: () => true,
+    URLSearchParams, location: { search: '' },
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'fixtures', 'legacy', 'app.js'), 'utf8'), context);
   const state = vm.runInContext('state', context);

@@ -11,8 +11,8 @@ export const HELP = {
       ["Playing a game", [
         "Each court shows two teams either side of the dashed net. When the game ends, tap <b>🏆 Won</b> under the winning side.",
         "New matches are unranked by default. Use the ranked toggle to make future matches ranked; matches already on court keep their mode.",
-        "Ranked results show everyone's rating change. Unranked results record the winner without changing ratings. Tap <b>⇄ Flip result</b> in the pop-up or Log if you tapped the wrong side.",
-        "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting for another court so there's a bigger pool to draw a fresh, fair game from. <b>▶ Fill now</b> skips the wait.",
+        "Ranked results update ratings. Unranked results record the winner without changing ratings. Tapped the wrong side? Tap <b>⇄ Flip result</b> in the pop-up. This works until one of those four players finishes another game.",
+        "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting until every court has finished. Then all courts are filled together from the full pool, so games stay fresh and fair. <b>▶ Fill now</b> skips the wait.",
         "<b>↻ Remix</b> redraws one court's game (only before it starts). <b>↻ All</b> redraws every court."
       ]],
       ["Taking a break or asking to play", [
@@ -20,7 +20,11 @@ export const HELP = {
         "<b>plain</b> — normal, in the rotation.",
         "<b>⚡ keen</b> — wants to play next; gets priority for the next free spot.",
         "<b>☕ break</b> — resting; won't be picked until tapped back to normal.",
-        "<b>🔥</b> next to a name means that person has played 2+ games in a row."
+        "<b>💃</b> next to a name means that person has played 2+ games in a row."
+      ]],
+      ["Win streaks", [
+        "Win 3 or more games in a row and a badge appears next to your name: <b>⭐</b> 3 wins, <b>🔥</b> 4 wins, <b>👑</b> 5+ wins.",
+        "Everyone on a streak is listed in the <b>On a streak</b> banner at the top until they lose a game."
       ]],
       ["Ratings and tiers", [
         "Everyone has an Elo rating. Only ranked results change it: winners gain points and losers lose them. Both players on a team get the same change.",
@@ -51,8 +55,8 @@ export const HELP = {
       ["Khi chơi", [
         "Mỗi sân hiển thị hai đội ở hai bên lưới. Khi trận kết thúc, bấm <b>🏆 Won</b> ở dưới đội thắng.",
         "Trận mới mặc định không tính điểm. Bật nút Ranked để các trận tạo sau đó được tính điểm; trận đang trên sân giữ nguyên chế độ.",
-        "Trận Ranked hiện thay đổi điểm của từng người. Trận Unranked chỉ lưu đội thắng, không đổi điểm. Bấm <b>⇄ Flip result</b> để sửa đội thắng.",
-        "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi thêm một sân xong để có nhiều người hơn, xếp trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
+        "Trận Ranked cập nhật điểm. Trận Unranked chỉ lưu đội thắng, không đổi điểm. Bấm nhầm đội? Bấm <b>⇄ Flip result</b> trong thông báo. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
+        "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi cho tới khi tất cả các sân đều xong. Khi đó mọi sân được xếp trận cùng lúc từ toàn bộ người chơi, để trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
         "<b>↻ Remix</b> xếp lại trận của một sân (chỉ trước khi bắt đầu đánh). <b>↻ All</b> xếp lại tất cả các sân."
       ]],
       ["Nghỉ hoặc xin được chơi", [
@@ -60,7 +64,11 @@ export const HELP = {
         "<b>bình thường</b> — vẫn trong vòng xoay.",
         "<b>⚡ keen</b> — muốn chơi tiếp; được ưu tiên vào trận kế.",
         "<b>☕ break</b> — đang nghỉ; không bị xếp trận cho tới khi bấm về bình thường.",
-        "<b>🔥</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
+        "<b>💃</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
+      ]],
+      ["Chuỗi thắng", [
+        "Thắng 3 trận liên tiếp trở lên sẽ có huy hiệu cạnh tên: <b>⭐</b> 3 trận, <b>🔥</b> 4 trận, <b>👑</b> 5 trận trở lên.",
+        "Những người đang có chuỗi thắng hiện ở khung <b>On a streak</b> phía trên cho tới khi thua một trận."
       ]],
       ["Điểm Elo và tier", [
         "Mỗi người có điểm Elo. Chỉ trận Ranked mới đổi điểm: thắng được cộng, thua bị trừ. Hai người cùng đội nhận cùng mức thay đổi.",

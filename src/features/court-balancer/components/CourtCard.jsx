@@ -1,7 +1,7 @@
 import { fmtLeft } from "../helpers";
-import { ProfileName } from "./Shared";
+import { ProfileName, StreakBadge } from "./Shared";
 
-export default function CourtCard({ court, state, actions, tired }) {
+export default function CourtCard({ court, state, actions, tired, streaks }) {
   const game = court.game;
   if (!game) return <div className="match-card center" style={{ color: "var(--dim)" }}>
     <div className="court-head" style={{ justifyContent: "center", position: "relative" }}>
@@ -9,7 +9,7 @@ export default function CourtCard({ court, state, actions, tired }) {
     </div>
     <div style={{ fontSize: 34, margin: "10px 0 6px" }}>{court.holdStartedAt ? "⏳" : "💤"}</div>
     {court.holdStartedAt ? <>
-      <div style={{ fontSize: 15 }}>Holding — waiting for another court to finish</div>
+      <div style={{ fontSize: 15 }}>Holding — waiting for the other courts to finish</div>
       <div className="countdown">{fmtLeft(Date.parse(court.holdStartedAt) + (state.settings?.hold_minutes ?? 10) * 60000 - state.now)}</div>
       <button className="mini-btn" style={{ marginTop: 6 }} onClick={actions.fillNow}>▶ Fill now</button>
     </> : <div style={{ fontSize: 15 }}>Waiting — need 4 free players here.</div>}
@@ -18,10 +18,10 @@ export default function CourtCard({ court, state, actions, tired }) {
   function team(ids, right) {
     return <div className={`team${right ? " right" : ""}`}>{ids.map((id) => {
       const player = state.players.find((p) => p.id === id) || { id, name: state.names.get(id) || "?", status: "normal" };
-      return <div className="p" key={id}><ProfileName player={player} />
+      return <div className="p" key={id}><ProfileName player={player} /><StreakBadge count={streaks.get(id) || 0} />
         {player.pendingRemove && <> <span title="Leaving after this game">🚪</span></>}
         {player.status === "keen" && <> <span title="Wants to play">⚡</span></>}
-        {tired.has(id) && <> <span title="Played 2+ in a row">🔥</span></>}
+        {tired.has(id) && <> <span title="Played 2+ in a row">💃</span></>}
       </div>;
     })}</div>;
   }
