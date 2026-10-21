@@ -45,3 +45,21 @@ export function profileResponse(player, history) {
     })),
   };
 }
+
+// Shapes finished-game rows for the club-wide dashboard. Only names and usernames are exposed.
+export function gamesResponse(rows) {
+  return (rows || []).filter((game) => game.ended_at).map((game) => {
+    const side = (team) => (game.game_players || []).filter((row) => row.team === team)
+      .map((row) => ({ name: row.players?.name || 'Player', username: row.players?.username || '' }));
+    const court = Array.isArray(game.courts) ? game.courts[0] : game.courts;
+    return {
+      id: game.id,
+      ended_at: game.ended_at,
+      winner: game.winner,
+      ranked: Boolean(game.ranked),
+      court_no: court?.court_no ?? null,
+      team_a: side('A'),
+      team_b: side('B'),
+    };
+  });
+}

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { imageExtension, profileResponse, usernameFromName, validateUsername } from '../supabase/functions/player-api/logic.mjs';
+import { imageExtension, profileResponse, usernameFromName, validateUsername } from '../src/lib/player-api/logic.mjs';
 
 test('username seed is a lowercase URL-safe form of the player name', () => {
   assert.equal(usernameFromName('  Sam O’Neil  '), 'sam-o-neil');
@@ -35,8 +35,8 @@ test('public profile response is an explicit safe-field projection', () => {
   assert.equal(JSON.stringify(result).includes('created_at'), false);
 });
 
-test('Edge Function does not log request credentials or return a player row', async () => {
-  const source = await readFile(new URL('../supabase/functions/player-api/index.ts', import.meta.url), 'utf8');
+test('Player API route does not log request credentials or return a player row', async () => {
+  const source = await readFile(new URL('../src/app/api/player/route.ts', import.meta.url), 'utf8');
   assert.match(source, /claim_player_login/);
   assert.match(source, /profileResponse/);
   assert.doesNotMatch(source, /console\.(?:log|error|warn)\s*\([^\n]*(?:password|request\.json|formData)/i);

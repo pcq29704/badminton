@@ -1,16 +1,17 @@
+import AuthShell from "@/components/AuthShell";
 import { Header } from "./Shared";
 
 export default function AccessScreen({ state, actions }) {
-  if (state.phase === "login") return <>
-    <Header subtitle="Fair doubles rotations, balanced by Elo · v8" />
-    <form className="card" onSubmit={(event) => { event.preventDefault(); void actions.login(); }}>
-      <div className="label" style={{ marginBottom: 6 }}>Organiser sign in</div>
-      <input type="email" aria-label="Email" placeholder="Email" autoComplete="username" value={state.loginEmail} onChange={(event) => actions.updateLoginEmail(event.target.value)} />
-      <input type="password" aria-label="Password" placeholder="Password" autoComplete="current-password" style={{ marginTop: 8 }} value={state.loginPassword} onChange={(event) => actions.updateLoginPassword(event.target.value)} />
-      <button className="btn big" style={{ marginTop: 12 }} disabled={state.busy} type="submit">Sign in</button>
-      <p className="hint">Only the organiser needs an account. Players don't sign in.</p>
+  if (state.phase === "login") return <AuthShell current="organiser" eyebrow="Organiser" title="Run the courts." lead="Fair doubles rotations, balanced by Elo." cardTitle="Organiser sign in">
+    <form onSubmit={(event) => { event.preventDefault(); void actions.login(); }}>
+      <label className="ds-field"><span className="ds-label">Email</span>
+        <input className="ds-input" type="email" placeholder="Email" autoComplete="username" value={state.loginEmail} onChange={(event) => actions.updateLoginEmail(event.target.value)} /></label>
+      <label className="ds-field"><span className="ds-label">Password</span>
+        <input className="ds-input" type="password" placeholder="Password" autoComplete="current-password" value={state.loginPassword} onChange={(event) => actions.updateLoginPassword(event.target.value)} /></label>
+      <button className="ds-btn blue block" style={{ marginTop: 20 }} disabled={state.busy} type="submit">Sign in</button>
+      <p className="ds-hint">Players can <a href="/">sign in on the player page</a>.</p>
     </form>
-  </>;
+  </AuthShell>;
 
   if (state.phase === "not-organiser") {
     const email = state.user?.email || "your@email.com";

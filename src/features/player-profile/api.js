@@ -1,9 +1,7 @@
-import { supabaseUrl, supabasePublishableKey } from "@/lib/supabase/client";
+import { supabaseUrl } from "@/lib/supabase/client";
 
-function endpoint() {
-  if (!supabaseUrl || !supabasePublishableKey) throw new Error("Development Supabase is not configured yet.");
-  return `${supabaseUrl}/functions/v1/player-api`;
-}
+// Same-origin Next.js route handler (src/app/api/player/route.ts).
+const endpoint = () => "/api/player";
 
 async function result(response) {
   const data = await response.json();
@@ -11,25 +9,22 @@ async function result(response) {
   return data;
 }
 
-export async function postPlayerJson(action, values, signal) {
+export async function postPlayerJson(action, values, signal, headers = {}) {
   return result(await fetch(endpoint(), {
     method: "POST",
-    headers: { apikey: supabasePublishableKey, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify({ action, ...values }),
     signal,
   }));
 }
 
-export async function uploadPlayerImage(username, password, kind, file, signal) {
+export async function uploadPlayerImage(kind, file, signal) {
   const form = new FormData();
   form.append("action", "upload");
-  form.append("username", username);
-  form.append("password", password);
   form.append("kind", kind);
   form.append("file", file);
   return result(await fetch(endpoint(), {
     method: "POST",
-    headers: { apikey: supabasePublishableKey },
     body: form,
     signal,
   }));

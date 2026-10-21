@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Base -->
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050F17"/>
+      <stop offset="0.55" stop-color="#0A1D2B"/>
+      <stop offset="1" stop-color="#140C2C"/>
+    </linearGradient>
+    <radialGradient id="glowMint" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#12B886" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#12B886" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowViolet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#A78BFA" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#A78BFA" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBlue" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3B82F6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#3B82F6" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Stroke gradients -->
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5EF7C8"/>
+      <stop offset="0.5" stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <linearGradient id="trail" gradientUnits="userSpaceOnUse" x1="1300" y1="470" x2="470" y2="300">
+      <stop offset="0" stop-color="#5EF7C8" stop-opacity="0"/>
+      <stop offset="0.6" stop-color="#5EF7C8" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#E9FFF8" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="fadeDown" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.25" stop-color="#fff" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="fadeSides" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.2" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="0.8" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="fadeRadial" cx="0.5" cy="0.45" r="0.55">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+
+    <mask id="courtMask"><rect x="0" y="700" width="1920" height="380" fill="url(#fadeDown)"/></mask>
+    <mask id="netMask"><rect x="240" y="600" width="1440" height="110" fill="url(#fadeSides)"/></mask>
+    <mask id="stringMask"><rect x="1100" y="80" width="560" height="680" fill="url(#fadeRadial)"/></mask>
+
+    <!-- Racket string mesh (diagonal, abstracted) -->
+    <pattern id="mesh" width="26" height="26" patternUnits="userSpaceOnUse">
+      <path d="M13 0V26M0 13H26" stroke="#5EF7C8" stroke-width="1" stroke-opacity="0.55"/>
+    </pattern>
+    <clipPath id="headClip"><ellipse cx="1380" cy="420" rx="200" ry="268"/></clipPath>
+
+    <filter id="glow" filterUnits="userSpaceOnUse" x="-200" y="-200" width="2320" height="1480">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow" filterUnits="userSpaceOnUse" x="-200" y="-200" width="2320" height="1480">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0"/>
+    </filter>
+  </defs>
+
+  <!-- Base + ambient light -->
+  <rect width="1920" height="1080" fill="url(#base)"/>
+  <circle cx="1380" cy="420" r="560" fill="url(#glowMint)"/>
+  <circle cx="300" cy="180" r="520" fill="url(#glowViolet)"/>
+  <circle cx="1720" cy="980" r="480" fill="url(#glowBlue)"/>
+
+  <!-- Perspective court grid -->
+  <g mask="url(#courtMask)" stroke="#60A5FA" stroke-opacity="0.35" stroke-width="1.2" fill="none">
+    <path d="M960 560L-840 1080M960 560L-480 1080M960 560L-120 1080M960 560L240 1080M960 560L600 1080M960 560L960 1080M960 560L1320 1080M960 560L1680 1080M960 560L2040 1080M960 560L2400 1080M960 560L2760 1080"/>
+    <path d="M0 720H1920M0 748H1920M0 786H1920M0 838H1920M0 908H1920M0 1004H1920"/>
+    <!-- highlighted court boundary -->
+    <path d="M960 560L240 1080M960 560L1680 1080" stroke="#5EF7C8" stroke-opacity="0.9" stroke-width="2" filter="url(#softGlow)"/>
+    <path d="M684 760H1236" stroke="#5EF7C8" stroke-opacity="0.8" stroke-width="2" filter="url(#softGlow)"/>
+  </g>
+
+  <!-- Abstract net: fine mesh with glowing tape -->
+  <g mask="url(#netMask)">
+    <rect x="240" y="640" width="1440" height="62" fill="#5EF7C8" fill-opacity="0.03"/>
+    <path d="M240 652H1680M240 664H1680M240 676H1680M240 688H1680" stroke="#A78BFA" stroke-opacity="0.25" stroke-width="1"/>
+    <g stroke="#A78BFA" stroke-opacity="0.22" stroke-width="1">
+      <path d="M260 640V702M290 640V702M320 640V702M350 640V702M380 640V702M410 640V702M440 640V702M470 640V702M500 640V702M530 640V702M560 640V702M590 640V702M620 640V702M650 640V702M680 640V702M710 640V702M740 640V702M770 640V702M800 640V702M830 640V702M860 640V702M890 640V702M920 640V702M950 640V702M980 640V702M1010 640V702M1040 640V702M1070 640V702M1100 640V702M1130 640V702M1160 640V702M1190 640V702M1220 640V702M1250 640V702M1280 640V702M1310 640V702M1340 640V702M1370 640V702M1400 640V702M1430 640V702M1460 640V702M1490 640V702M1520 640V702M1550 640V702M1580 640V702M1610 640V702M1640 640V702"/>
+    </g>
+    <path d="M240 640H1680" stroke="#E9FFF8" stroke-width="2.5" filter="url(#glow)"/>
+  </g>
+
+  <!-- Abstract racket: swing echoes + fragmented head -->
+  <g fill="none" transform="rotate(28 1380 420)">
+    <!-- motion echoes -->
+    <ellipse cx="1380" cy="420" rx="220" ry="290" stroke="#A78BFA" stroke-opacity="0.12" stroke-width="2" transform="rotate(-18 1380 900)"/>
+    <ellipse cx="1380" cy="420" rx="220" ry="290" stroke="#60A5FA" stroke-opacity="0.2" stroke-width="2" transform="rotate(-11 1380 900)"/>
+    <ellipse cx="1380" cy="420" rx="220" ry="290" stroke="#5EF7C8" stroke-opacity="0.3" stroke-width="2" transform="rotate(-5 1380 900)" stroke-dasharray="4 14"/>
+
+    <!-- strings -->
+    <g clip-path="url(#headClip)" mask="url(#stringMask)">
+      <rect x="1100" y="80" width="560" height="680" fill="url(#mesh)" transform="rotate(45 1380 420)"/>
+    </g>
+
+    <!-- frame: broken neon arcs -->
+    <ellipse cx="1380" cy="420" rx="220" ry="290" stroke="url(#neon)" stroke-width="5" stroke-linecap="round"
+             stroke-dasharray="560 40 220 30 380 60" filter="url(#glow)"/>
+    <ellipse cx="1380" cy="420" rx="200" ry="268" stroke="#E9FFF8" stroke-opacity="0.35" stroke-width="1.2"
+             stroke-dasharray="2 10"/>
+
+    <!-- throat + shaft as converging light beams -->
+    <path d="M1300 690L1380 830L1460 690" stroke="url(#neon)" stroke-width="3" stroke-linecap="round" filter="url(#softGlow)"/>
+    <path d="M1380 830V1080" stroke="#7C9BFA" stroke-width="4" stroke-linecap="round" stroke-dasharray="120 18 40 18 14 18" filter="url(#glow)"/>
+    <path d="M1392 860V1240" stroke="#A78BFA" stroke-opacity="0.35" stroke-width="1.2"/>
+  </g>
+
+  <!-- Impact ripple at the sweet spot -->
+  <g fill="none" stroke="#5EF7C8" filter="url(#softGlow)">
+    <circle cx="1330" cy="440" r="26" stroke-opacity="0.9" stroke-width="2"/>
+    <circle cx="1330" cy="440" r="58" stroke-opacity="0.5" stroke-width="1.5" stroke-dasharray="6 8"/>
+    <circle cx="1330" cy="440" r="104" stroke-opacity="0.22" stroke-width="1"/>
+  </g>
+  <circle cx="1330" cy="440" r="7" fill="#E9FFF8" filter="url(#glow)"/>
+
+  <!-- Shuttle flight path -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M1330 440Q900 -60 470 300" stroke="url(#trail)" stroke-width="3" filter="url(#glow)"/>
+    <path d="M1330 470Q920 0 500 330" stroke="url(#trail)" stroke-opacity="0.5" stroke-width="1.2" stroke-dasharray="2 12"/>
+    <path d="M1330 410Q880 -120 450 270" stroke="url(#trail)" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="30 20"/>
+  </g>
+
+  <!-- Abstract shuttlecock: cork node + feather rays -->
+  <g transform="translate(470 300) rotate(-38)" filter="url(#softGlow)">
+    <g stroke="#E9FFF8" stroke-width="1.6" stroke-linecap="round" fill="none">
+      <path d="M14 -9L104 -52M14 9L104 52M15 -4L110 -24M15 4L110 24M16 0L112 0" stroke-opacity="0.85"/>
+      <ellipse cx="104" cy="0" rx="12" ry="54" stroke="#5EF7C8" stroke-width="2"/>
+      <ellipse cx="58" cy="0" rx="7" ry="30" stroke="#5EF7C8" stroke-opacity="0.5"/>
+    </g>
+    <circle r="15" fill="#F2994A"/>
+    <circle r="15" fill="none" stroke="#FFE8A3" stroke-width="2"/>
+  </g>
+  <circle cx="470" cy="300" r="34" fill="none" stroke="#F2994A" stroke-opacity="0.4" stroke-dasharray="3 7"/>
+
+  <!-- Data-like HUD accents -->
+  <g stroke="#60A5FA" stroke-opacity="0.45" fill="none" stroke-width="1.2">
+    <path d="M80 80H200M80 80V200"/>
+    <path d="M1840 1000H1720M1840 1000V880"/>
+    <path d="M1620 120H1800M1800 120V160"/>
+    <path d="M120 940H300M120 940V900"/>
+  </g>
+  <g fill="#A78BFA" fill-opacity="0.6">
+    <rect x="1630" y="134" width="40" height="4"/><rect x="1680" y="134" width="18" height="4"/><rect x="1708" y="134" width="60" height="4"/>
+    <rect x="140" y="922" width="24" height="4"/><rect x="172" y="922" width="56" height="4"/><rect x="236" y="922" width="12" height="4"/>
+  </g>
+
+  <!-- Particles -->
+  <g fill="#E9FFF8">
+    <circle cx="640" cy="160" r="2" opacity="0.8"/><circle cx="760" cy="96" r="1.4" opacity="0.6"/>
+    <circle cx="880" cy="70" r="2.2" opacity="0.7"/><circle cx="1020" cy="120" r="1.2" opacity="0.5"/>
+    <circle cx="1120" cy="210" r="1.8" opacity="0.7"/><circle cx="1500" cy="160" r="1.5" opacity="0.5"/>
+    <circle cx="1700" cy="300" r="2" opacity="0.6"/><circle cx="1780" cy="520" r="1.3" opacity="0.4"/>
+    <circle cx="1600" cy="760" r="1.8" opacity="0.5"/><circle cx="220" cy="420" r="1.6" opacity="0.5"/>
+    <circle cx="360" cy="560" r="1.2" opacity="0.4"/><circle cx="140" cy="300" r="2" opacity="0.6"/>
+    <circle cx="560" cy="460" r="1.4" opacity="0.5"/><circle cx="700" cy="560" r="1" opacity="0.4"/>
+    <circle cx="1060" cy="420" r="1.4" opacity="0.4"/><circle cx="420" cy="140" r="1.2" opacity="0.5"/>
+  </g>
+  <g fill="#5EF7C8">
+    <circle cx="980" cy="160" r="3" opacity="0.6" filter="url(#softGlow)"/>
+    <circle cx="1180" cy="300" r="2.5" opacity="0.5" filter="url(#softGlow)"/>
+    <circle cx="300" cy="640" r="2.5" opacity="0.4" filter="url(#softGlow)"/>
+  </g>
+
+  <!-- Film grain -->
+  <rect width="1920" height="1080" filter="url(#grain)"/>
+</svg>

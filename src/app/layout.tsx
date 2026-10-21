@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import "./design.css";
 
 export const metadata: Metadata = {
   title: "Court Balancer 🏸",

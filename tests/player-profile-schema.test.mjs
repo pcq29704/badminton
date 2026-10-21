@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const migration = await readFile(new URL('../migrations/20261012_player_profiles.sql', import.meta.url), 'utf8');
+const migration = await readFile(new URL('../supabase/migrations/20261012000000_player_profiles.sql', import.meta.url), 'utf8');
 const baseline = await readFile(new URL('../court_balancer_schema.sql', import.meta.url), 'utf8');
 
 test('migration seeds and uniquely constrains player usernames', () => {

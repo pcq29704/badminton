@@ -1,2 +1,2 @@
-[functions.player-api]
-verify_jwt = false
+# Supabase project settings. Player profile endpoints live in the Next.js app
+# (src/app/api/player/route.ts), so there are no edge functions to configure.

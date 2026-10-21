@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
 import { postPlayerJson, uploadPlayerImage } from "./api";
 
-export function usePlayerProfile() {
+// onSignedIn(username) runs after an explicit sign-in, or when a saved session is restored with no ?u= in the URL.
+export function usePlayerProfile({ onSignedIn } = {}) {
   const [state, setState] = useState({
-    initialized: false, username: "", loginUsername: "", password: "",
+    initialized: false, restored: false, username: "", loginUsername: "", password: "",
     newUsername: null, loggedIn: false, busy: false, error: "", notice: "", profile: null,
   });
   const lifecycle = useRef(null);
@@ -22,12 +23,33 @@ export function usePlayerProfile() {
     }
   }
 
+  // Restores a signed-in player after refresh. Skips the restore when ?u= names a different player.
+  async function restoreSession(username, signal) {
+    let restored = null;
+    try {
+      restored = await postPlayerJson("session", {}, signal);
+    } catch {
+      restored = null;
+    }
+    if (signal.aborted) return;
+    update({ restored: true });
+    const sameOrEmpty = !username || username.toLowerCase() === restored?.username?.toLowerCase();
+    if (restored && sameOrEmpty) {
+      update({ loggedIn: true, username: restored.username, loginUsername: restored.username });
+      if (!username && onSignedIn) { onSignedIn(restored.username); return; }
+      setProfileUrl(restored.username);
+      await refreshProfile(restored.username, signal);
+      return;
+    }
+    if (hasSupabaseConfig && username) await refreshProfile(username, signal);
+  }
+
   useEffect(() => {
     const controller = new AbortController();
     lifecycle.current = controller;
     const username = new URLSearchParams(window.location.search).get("u") || "";
     update({ initialized: true, username, loginUsername: username });
-    if (hasSupabaseConfig && username) void refreshProfile(username, controller.signal);
+    if (hasSupabaseConfig) void restoreSession(username, controller.signal);
     return () => { controller.abort(); lifecycle.current = null; };
   }, []);
 
@@ -58,7 +80,8 @@ export function usePlayerProfile() {
     return run(async (signal) => {
       const result = await postPlayerJson("login", { username: state.loginUsername, password: state.password }, signal);
       if (signal.aborted) return;
-      update({ username: result.username, loginUsername: result.username, loggedIn: true, newUsername: null });
+      update({ username: result.username, loginUsername: result.username, loggedIn: true, newUsername: null, password: "" });
+      if (onSignedIn) { onSignedIn(result.username); return; }
       setProfileUrl(result.username);
       await refreshProfile(result.username, signal);
     });
@@ -67,7 +90,7 @@ export function usePlayerProfile() {
   function saveUsername() {
     if (!state.loggedIn) return;
     return run(async (signal) => {
-      const result = await postPlayerJson("update", { username: state.username, password: state.password, newUsername: state.newUsername ?? state.profile.username }, signal);
+      const result = await postPlayerJson("update", { newUsername: state.newUsername ?? state.profile.username }, signal);
       if (signal.aborted) return;
       update({ username: result.username, loginUsername: result.username, newUsername: null, notice: "Username updated." });
       setProfileUrl(result.username);
@@ -78,7 +101,7 @@ export function usePlayerProfile() {
   function upload(kind, file) {
     if (!state.loggedIn || !file) return;
     return run(async (signal) => {
-      await uploadPlayerImage(state.username, state.password, kind, file, signal);
+      await uploadPlayerImage(kind, file, signal);
       if (signal.aborted) return;
       update({ notice: kind === "profile" ? "Profile image updated." : "Background image updated." });
       await refreshProfile(state.username, signal);
@@ -87,6 +110,8 @@ export function usePlayerProfile() {
 
   function signOut() {
     if (busy.current) return;
+    // Logout errors are ignored: the cookie is cleared by the server, and the UI should not wait on it.
+    void postPlayerJson("logout", {}, lifecycle.current?.signal).catch(() => {});
     update({ loggedIn: false, password: "", loginUsername: state.username, newUsername: null, notice: "" });
   }
 

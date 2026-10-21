@@ -1,5 +1,5 @@
-import CourtBalancer from "@/features/court-balancer/CourtBalancer";
+import PlayerProfile from "@/features/player-profile/PlayerProfile";
 
 export default function HomePage() {
-  return <CourtBalancer />;
+  return <PlayerProfile />;
 }
