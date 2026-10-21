@@ -14,17 +14,20 @@ async function organiserHeaders() {
 // Loads the signed-in viewer (player or organiser) and the club's finished games. Signed-out visitors go to "/".
 export function useClubGames() {
   const router = useRouter();
-  const [state, setState] = useState({ loading: true, viewer: null, games: [], error: "" });
+  const [state, setState] = useState({ loading: true, viewer: null, games: [], ranking: [], error: "" });
 
   useEffect(() => {
     const controller = new AbortController();
-    if (!hasSupabaseConfig) { setState({ loading: false, viewer: null, games: [], error: "" }); return; }
+    if (!hasSupabaseConfig) { setState({ loading: false, viewer: null, games: [], ranking: [], error: "" }); return; }
     (async () => {
       try {
         const headers = await organiserHeaders();
         const viewer = await postPlayerJson("viewer", {}, controller.signal, headers);
-        const { games } = await postPlayerJson("games", {}, controller.signal, headers);
-        if (!controller.signal.aborted) setState({ loading: false, viewer, games, error: "" });
+        const [{ games }, { ranking }] = await Promise.all([
+          postPlayerJson("games", {}, controller.signal, headers),
+          postPlayerJson("ranking", {}, controller.signal, headers),
+        ]);
+        if (!controller.signal.aborted) setState({ loading: false, viewer, games, ranking, error: "" });
       } catch (error) {
         if (controller.signal.aborted) return;
         if (error.message === "Sign in to continue.") router.replace("/");

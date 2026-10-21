@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { groupGamesByDay, isDayKey } from '../src/features/dashboard/days.mjs';
-import { gamesResponse } from '../src/lib/player-api/logic.mjs';
+import { gamesResponse, rankingResponse } from '../src/lib/player-api/logic.mjs';
 
 const p = (name, username = '') => ({ name, username });
 const at = (day, hour, extra = {}) => ({ id: day * 100 + hour, ended_at: new Date(2026, 9, day, hour).toISOString(), winner: 'A', ranked: true, court_no: 1, team_a: [p('Ann', 'ann'), p('Bob')], team_b: [p('Cy'), p('Di')], ...extra });

@@ -1,5 +1,5 @@
 import { getAdminClient } from "@/lib/supabase/admin";
-import { gamesResponse, imageExtension, profileResponse, validateImageSize, validateUsername } from "@/lib/player-api/logic.mjs";
+import { gamesResponse, imageExtension, rankingResponse, profileResponse, validateImageSize, validateUsername } from "@/lib/player-api/logic.mjs";
 import {
   clearedSessionCookie,
   hashSessionToken,
@@ -91,6 +91,14 @@ async function clubGames(db: Db) {
     .limit(GAMES_LIMIT);
   if (error) return json({ error: "Could not load match history." }, 500);
   return json({ games: gamesResponse(data as any[]) });
+}
+
+async function clubRanking(db: Db) {
+  const { data, error } = await db.from("players")
+    .select("name,username,elo,tier,games_total")
+    .eq("active", true);
+  if (error) return json({ error: "Could not load the ranking." }, 500);
+  return json({ ranking: rankingResponse(data as any[]) });
 }
 
 async function deleteSession(db: Db, request: Request) {
@@ -232,10 +240,11 @@ export async function POST(request: Request) {
       if (!session) return json({ error: SIGN_IN_REQUIRED }, 401);
       return json({ ok: true, username: session.username });
     }
-    if (body.action === "viewer" || body.action === "games") {
+    if (body.action === "viewer" || body.action === "games" || body.action === "ranking") {
       const viewer = await requireViewer(db, request);
       if (!viewer) return json({ error: SIGN_IN_REQUIRED }, 401);
-      return body.action === "viewer" ? json({ ok: true, ...viewer }) : await clubGames(db);
+      if (body.action === "viewer") return json({ ok: true, ...viewer });
+      return body.action === "games" ? await clubGames(db) : await clubRanking(db);
     }
     if (body.action === "logout") {
       await deleteSession(db, request);

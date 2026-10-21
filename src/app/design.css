@@ -145,6 +145,14 @@ body:has(.ds-root) .toast.error { background: #f23c57; }
 body:has(.ds-root) .toast-x, body:has(.ds-root) .toast .mini-btn { color: #fff; border-color: rgb(255 255 255 / .4); background: transparent; }
 
 /* days played + match table */
+.ds-ranking { margin: 24px 0 40px; }
+.ds-ranking-title { margin: 0; font-size: 20px; font-weight: 700; line-height: 28px; }
+.ds-ranking-list { display: grid; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.ds-rank-link { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto 56px; align-items: center; gap: 12px; padding: 12px 20px; border-radius: 16px; background: var(--ds-surface-1); color: inherit; text-decoration: none; }
+a.ds-rank-link:hover, .ds-rank-row.me .ds-rank-link { background: var(--ds-tint-mint); }
+.ds-rank-pos { color: var(--ds-muted); font-weight: 700; }
+.ds-rank-name { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.ds-rank-elo { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 .ds-days { display: grid; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
 .ds-day { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 24px; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 20px; background: var(--ds-surface-1); text-decoration: none; }
 .ds-day:hover { background: var(--ds-tint-mint); }

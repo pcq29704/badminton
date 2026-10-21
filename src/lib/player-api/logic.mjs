@@ -63,3 +63,14 @@ export function gamesResponse(rows) {
     };
   });
 }
+
+// Shapes the club leaderboard: highest Elo first. Only name, username, tier, Elo and game count are exposed.
+export function rankingResponse(rows) {
+  return (rows || []).map((player) => ({
+    name: player.name || 'Player',
+    username: player.username || '',
+    elo: Math.round(Number(player.elo)),
+    tier: player.tier,
+    games_total: player.games_total ?? 0,
+  })).sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name));
+}
