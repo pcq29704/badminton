@@ -14,6 +14,5 @@ export default function PlayerSignIn({ state, actions }) {
     </label>
     {state.error && <p className="ds-alert error" role="alert">{state.error}</p>}
     <button className="ds-btn blue block" style={{ marginTop: 20 }} disabled={state.busy} type="submit">{state.busy ? "Signing in…" : "Sign in"}</button>
-    <p className="ds-hint">The first password entered for an unclaimed username becomes its password.</p>
   </form>;
 }

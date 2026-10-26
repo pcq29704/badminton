@@ -12,6 +12,14 @@ export function validateUsername(value) {
   return username;
 }
 
+// Display name: trimmed, inner spaces collapsed, 1–40 characters, no control characters.
+export function validateName(value) {
+  if (typeof value !== 'string') throw new Error('Enter a valid name.');
+  const name = value.trim().replace(/\s+/g, ' ');
+  if (!name || name.length > 40 || /[\u0000-\u001f\u007f]/.test(name)) throw new Error('Use 1–40 characters for your name.');
+  return name;
+}
+
 export function validateImageSize(size) {
   if (!Number.isInteger(size) || size < 1 || size > 5 * 1024 * 1024) throw new Error('Images must be 5 MB or smaller.');
 }
@@ -31,6 +39,7 @@ export function imageExtension(contentType, size, bytes) {
 
 export function profileResponse(player, history) {
   return {
+    name: player.name,
     username: player.username,
     elo: player.elo,
     tier: player.tier,
@@ -40,8 +49,8 @@ export function profileResponse(player, history) {
     history: history.map((game) => ({
       ended_at: game.ended_at,
       winner: game.winner,
-      team_a: game.team_a.map(({ name, username }) => ({ name, username })),
-      team_b: game.team_b.map(({ name, username }) => ({ name, username })),
+      team_a: game.team_a.map(({ name, username, tier, profile_image_path }) => ({ name, username, tier, profile_image_path })),
+      team_b: game.team_b.map(({ name, username, tier, profile_image_path }) => ({ name, username, tier, profile_image_path })),
     })),
   };
 }
@@ -64,7 +73,7 @@ export function gamesResponse(rows) {
   });
 }
 
-// Shapes the club leaderboard: highest Elo first. Only name, username, tier, Elo and game count are exposed.
+// Shapes the club leaderboard: highest Elo first. Only name, username, profile image path, tier, Elo and game count are exposed.
 export function rankingResponse(rows) {
   return (rows || []).map((player) => ({
     name: player.name || 'Player',
@@ -72,5 +81,6 @@ export function rankingResponse(rows) {
     elo: Math.round(Number(player.elo)),
     tier: player.tier,
     games_total: player.games_total ?? 0,
+    profile_image_path: player.profile_image_path || '',
   })).sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name));
 }

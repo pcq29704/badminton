@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { computeDashboard } from "./dashboard.mjs";
 import { profileHref } from "../court-balancer/helpers";
+import { RankIcon } from "../../components/PlayerAvatar";
 
 const weekLabel = (index, total) => (index === total - 1 ? "Now" : `-${total - 1 - index}w`);
 const record = (entry) => `${entry.wins}-${entry.games - entry.wins}`;
@@ -28,9 +29,8 @@ export default function ProfileStats({ profile }) {
   if (!stats.played) return <p className="ds-empty">No finished games yet. Stats appear after the first game.</p>;
   const peak = Math.max(1, ...stats.weekly);
   return <div className="ds-section">
-    <h2 className="ds-h2">Overview</h2>
     <div className="ds-tile-grid">
-      <Tile tone="mint" label="Elo" value={profile.elo} note={<><span className={`ds-tier t-${profile.tier}`}>{profile.tier}</span> tier</>} />
+      <Tile tone="mint" label="Elo" value={profile.elo} note={<RankIcon tier={profile.tier} className="ds-sub-icon" />} />
       <Tile tone="lime" label="Win rate" value={`${stats.winRate}%`} note={`${stats.wins} wins · ${stats.losses} losses`} />
       <Tile tone="sky" label="Games" value={profile.games_total ?? stats.played} note={stats.lastPlayed ? `Last on ${new Date(stats.lastPlayed).toLocaleDateString([], { dateStyle: "medium" })}` : undefined} />
       <Tile tone="sand" label="Win streak" value={stats.streak} note={`Best ${stats.bestStreak}`} />

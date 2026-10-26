@@ -7,11 +7,14 @@ import AuthShell from "@/components/AuthShell";
 import Shell from "@/components/Shell";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
 import { usePlayerProfile } from "./usePlayerProfile";
-import { profileImageUrl } from "./api";
+import PlayerAvatar, { RankIcon, tierKey } from "../../components/PlayerAvatar";
 import PlayerSignIn from "./PlayerSignIn";
 import ProfileSettings from "./ProfileSettings";
 import ProfileHistory from "./ProfileHistory";
 import ProfileStats from "./ProfileStats";
+
+// Metal name of each rank badge, shown next to the rank letter.
+const RANK_NAMES = { S: "Iridescent", A: "Gold", B: "Silver", C: "Copper", D: "Bronze" };
 
 // Public profile and player sign-in. Signing in sends the player to the dashboard at /dashboard.
 export default function PlayerProfile() {
@@ -19,32 +22,38 @@ export default function PlayerProfile() {
   const { state, actions } = usePlayerProfile({ onSignedIn: () => router.replace("/dashboard") });
   const [tab, setTab] = useState("stats");
   const profile = state.profile;
-  const current = "player";
+  const viewer = state.loggedIn ? { role: "player", username: state.username } : undefined;
+  const shell = { current: viewer ? "profile" : state.restored || !hasSupabaseConfig ? "player" : "pending", viewer, onSignOut: actions.signOut };
 
-  if (!hasSupabaseConfig) return <Shell current={current}><ConfigurationMessage /></Shell>;
-  if (!state.initialized) return <Shell current={current}><p className="ds-empty">Loading player profile…</p></Shell>;
+  if (!hasSupabaseConfig) return <Shell {...shell}><ConfigurationMessage /></Shell>;
+  if (!state.initialized) return <Shell {...shell}><p className="ds-empty">Loading player profile…</p></Shell>;
   if (!state.username) return <AuthShell current="player" eyebrow="Player" title="Open your profile." lead="Sign in to see your rating, results, and partners." cardTitle="Sign in to Court Balancer">
     <PlayerSignIn state={state} actions={actions} />
   </AuthShell>;
-  if (!profile) return <Shell current={current}>
+  if (!profile) return <Shell {...shell}>
     {state.error ? <p className="ds-alert error" role="alert">{state.error}</p> : <p className="ds-empty">Loading player profile…</p>}
     {state.error && <PlayerSignIn state={{ ...state, error: "" }} actions={actions} />}
   </Shell>;
 
-  const tabs = [["stats", "Stats"], ["games", "Games"], [state.loggedIn ? "settings" : "signin", state.loggedIn ? "Settings" : "Sign in"]];
+  const tabs = [["stats", "Overview"], ["games", "Match history"], ...(state.loggedIn ? [["settings", "Settings"]] : [])];
   const active = tabs.some(([id]) => id === tab) ? tab : "stats";
-  const cover = profile.background_image_path ? { backgroundImage: `url("${profileImageUrl(profile.background_image_path)}")` } : undefined;
-  return <Shell current={current}>
-    <div className={state.busy ? "ds-busy" : undefined}>
-      <section className="ds-hero" style={cover} aria-label="Profile cover" />
+  // Custom background images are hidden for now; the hero falls back to the rank mark.
+  const cover = undefined;
+  // The rank sets the page colour theme (see "rank theme" in design.css).
+  const rank = tierKey(profile.tier).toUpperCase();
+  return <Shell {...shell}>
+    <div className={`ds-profile${state.busy ? " ds-busy" : ""}`} data-tier={rank || undefined}>
+      <section className={`ds-hero${!cover && rank ? " ds-hero-rank" : ""}`} style={cover} aria-label="Profile cover">
+        {!cover && rank && <img className="ds-hero-mark" src={`/assets/rank-badges/rank-${rank.toLowerCase()}.png`} alt="" aria-hidden="true" />}
+      </section>
       <div className="ds-identity">
-        {profile.profile_image_path
-          ? <img className="ds-avatar" src={profileImageUrl(profile.profile_image_path)} alt={`${profile.username} profile image`} />
-          : <div className="ds-avatar" aria-hidden="true">🏸</div>}
+        <PlayerAvatar className="ds-avatar" path={profile.profile_image_path} tier={profile.tier} alt={`${profile.name || profile.username} profile image`} />
         <div className="ds-identity-text">
-          <h1 className="ds-username">{profile.username}</h1>
-          <p className="ds-sub"><span className={`ds-tier t-${profile.tier}`}>{profile.tier}</span> tier · Elo {profile.elo} · {profile.games_total} games</p>
+          <h1 className="ds-username">{profile.name || profile.username}</h1>
+          <p className="ds-sub">Elo {profile.elo} · {profile.games_total} games</p>
+          {rank && <span className="ds-rank-pill"><RankIcon tier={rank} className="ds-rank-pill-icon" />Rank {rank} · {RANK_NAMES[rank]}</span>}
         </div>
+        <div className="ds-emblem"><RankIcon tier={profile.tier} className="ds-emblem-icon" /></div>
       </div>
       {state.notice && <p className="ds-alert" role="status">{state.notice}</p>}
       {state.error && state.loggedIn && <p className="ds-alert error" role="alert">{state.error}</p>}
@@ -52,8 +61,7 @@ export default function PlayerProfile() {
         {tabs.map(([id, label]) => <button key={id} className="ds-chip" role="tab" aria-selected={active === id} onClick={() => setTab(id)}>{label}</button>)}
       </div>
       {active === "stats" && <ProfileStats profile={profile} />}
-      {active === "games" && <div className="ds-section"><h2 className="ds-h2">Finished games</h2><ProfileHistory games={profile.history} /></div>}
-      {active === "signin" && <div className="ds-section ds-settings"><h2 className="ds-card-title">Sign in to edit</h2><PlayerSignIn state={state} actions={actions} /></div>}
+      {active === "games" && <div className="ds-section"><ProfileHistory games={profile.history} username={profile.username} /></div>}
       {active === "settings" && <div className="ds-section"><h2 className="ds-h2">Edit profile</h2><ProfileSettings state={state} actions={actions} /></div>}
     </div>
   </Shell>;

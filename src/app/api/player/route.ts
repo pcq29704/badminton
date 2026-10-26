@@ -1,5 +1,5 @@
 import { getAdminClient } from "@/lib/supabase/admin";
-import { gamesResponse, imageExtension, rankingResponse, profileResponse, validateImageSize, validateUsername } from "@/lib/player-api/logic.mjs";
+import { gamesResponse, imageExtension, rankingResponse, profileResponse, validateImageSize, validateName, validateUsername } from "@/lib/player-api/logic.mjs";
 import {
   clearedSessionCookie,
   hashSessionToken,
@@ -53,7 +53,7 @@ async function requireSession(db: Db, request: Request) {
     .maybeSingle();
   if (error || !row) return null;
   const { data: player, error: playerError } = await db.from("players")
-    .select("id,username")
+    .select("id,name,username")
     .eq("id", row.player_id)
     .maybeSingle();
   if (playerError || !player) return null;
@@ -63,13 +63,13 @@ async function requireSession(db: Db, request: Request) {
       .update({ last_used_at: now.toISOString(), expires_at: sessionExpiry(now).toISOString() })
       .eq("id", row.id);
   }
-  return { player_id: player.id as number, username: player.username as string, session_id: row.id as string };
+  return { player_id: player.id as number, name: (player.name || player.username) as string, username: player.username as string, session_id: row.id as string };
 }
 
 // Identifies the viewer for read-only club data: a player session cookie, or an organiser's Supabase access token.
 async function requireViewer(db: Db, request: Request) {
   const player = await requireSession(db, request);
-  if (player) return { role: "player" as const, name: player.username, username: player.username };
+  if (player) return { role: "player" as const, name: player.name, username: player.username };
   const auth = request.headers.get("authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
   if (!token || token.length > 4096) return null;
@@ -95,7 +95,7 @@ async function clubGames(db: Db) {
 
 async function clubRanking(db: Db) {
   const { data, error } = await db.from("players")
-    .select("name,username,elo,tier,games_total")
+    .select("name,username,elo,tier,games_total,profile_image_path")
     .eq("active", true);
   if (error) return json({ error: "Could not load the ranking." }, 500);
   return json({ ranking: rankingResponse(data as any[]) });
@@ -126,7 +126,7 @@ async function publicProfile(db: Db, rawUsername: unknown) {
   try { username = validateUsername(rawUsername); }
   catch (error) { return json({ error: error instanceof Error ? error.message : "Enter a valid username." }, 400); }
   const { data: player, error: playerError } = await db.from("players")
-    .select("id,username,elo,tier,games_total,profile_image_path,background_image_path")
+    .select("id,name,username,elo,tier,games_total,profile_image_path,background_image_path")
     .eq("username", username)
     .maybeSingle();
   if (playerError) return json({ error: "Could not load this profile." }, 500);
@@ -142,7 +142,7 @@ async function publicProfile(db: Db, rawUsername: unknown) {
   let history: ReturnType<typeof profileResponse>["history"] = [];
   if (gameIds.length) {
     const { data: games, error: gamesError } = await db.from("games")
-      .select("id,ended_at,winner,status,game_players(team,players(name,username))")
+      .select("id,ended_at,winner,status,game_players(team,players(name,username,tier,profile_image_path))")
       .in("id", gameIds)
       .eq("status", "finished")
       .order("ended_at", { ascending: false });
@@ -150,7 +150,7 @@ async function publicProfile(db: Db, rawUsername: unknown) {
     history = (games || []).map((game: any) => {
       const players = game.game_players || [];
       const side = (team: string) => players.filter((row: any) => row.team === team)
-        .map((row: any) => ({ name: row.players?.name || "Player", username: row.players?.username || "" }));
+        .map((row: any) => ({ name: row.players?.name || "Player", username: row.players?.username || "", tier: row.players?.tier || "", profile_image_path: row.players?.profile_image_path || "" }));
       return { ended_at: game.ended_at, winner: game.winner, team_a: side("A"), team_b: side("B") };
     });
   }
@@ -172,6 +172,23 @@ async function updateUsername(db: Db, request: Request, body: Record<string, unk
   if (error?.code === "23505") return json({ error: "That username is unavailable." }, 409);
   if (error || !data) return json({ error: "Could not update this profile." }, 500);
   return json({ ok: true, username: data.username });
+}
+
+async function updateName(db: Db, request: Request, body: Record<string, unknown>) {
+  if (isCrossSiteOrigin(request)) return json({ error: REQUEST_BLOCKED }, 403);
+  const session = await requireSession(db, request);
+  if (!session) return json({ error: SIGN_IN_REQUIRED }, 401);
+  let newName: string;
+  try {
+    newName = validateName(body.newName);
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : "Enter a valid name." }, 400);
+  }
+  const { data, error } = await db.from("players").update({ name: newName })
+    .eq("id", session.player_id).select("name").single();
+  if (error?.code === "23505") return json({ error: "That name is already used by another player." }, 409);
+  if (error || !data) return json({ error: "Could not update this profile." }, 500);
+  return json({ ok: true, name: data.name });
 }
 
 async function uploadImage(db: Db, request: Request, form: FormData) {
@@ -235,6 +252,7 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Invalid request." }, 400);
     if (body.action === "profile") return await publicProfile(db, body.username);
     if (body.action === "update") return await updateUsername(db, request, body);
+    if (body.action === "update-name") return await updateName(db, request, body);
     if (body.action === "session") {
       const session = await requireSession(db, request);
       if (!session) return json({ error: SIGN_IN_REQUIRED }, 401);

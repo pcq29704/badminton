@@ -8,7 +8,7 @@ import { postPlayerJson, uploadPlayerImage } from "./api";
 export function usePlayerProfile({ onSignedIn } = {}) {
   const [state, setState] = useState({
     initialized: false, restored: false, username: "", loginUsername: "", password: "",
-    newUsername: null, loggedIn: false, busy: false, error: "", notice: "", profile: null,
+    newUsername: null, newName: null, loggedIn: false, busy: false, error: "", notice: "", profile: null,
   });
   const lifecycle = useRef(null);
   const busy = useRef(false);
@@ -98,6 +98,16 @@ export function usePlayerProfile({ onSignedIn } = {}) {
     });
   }
 
+  function saveName() {
+    if (!state.loggedIn) return;
+    return run(async (signal) => {
+      await postPlayerJson("update-name", { newName: state.newName ?? state.profile.name ?? "" }, signal);
+      if (signal.aborted) return;
+      update({ newName: null, notice: "Name updated." });
+      await refreshProfile(state.username, signal);
+    });
+  }
+
   function upload(kind, file) {
     if (!state.loggedIn || !file) return;
     return run(async (signal) => {
@@ -112,8 +122,8 @@ export function usePlayerProfile({ onSignedIn } = {}) {
     if (busy.current) return;
     // Logout errors are ignored: the cookie is cleared by the server, and the UI should not wait on it.
     void postPlayerJson("logout", {}, lifecycle.current?.signal).catch(() => {});
-    update({ loggedIn: false, password: "", loginUsername: state.username, newUsername: null, notice: "" });
+    update({ loggedIn: false, password: "", loginUsername: state.username, newUsername: null, newName: null, notice: "" });
   }
 
-  return { state, actions: { update, login, saveUsername, upload, signOut } };
+  return { state, actions: { update, login, saveName, saveUsername, upload, signOut } };
 }

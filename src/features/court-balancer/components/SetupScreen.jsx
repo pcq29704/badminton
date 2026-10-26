@@ -21,7 +21,7 @@ export default function SetupScreen({ state, actions }) {
           <button className={`chip pick${state.picked.has(player.id) ? " on" : ""}`} onClick={() => actions.togglePick(player.id)}>
             {state.picked.has(player.id) ? "✓ " : ""}{player.name} <TierBadge code={player.tier} /><span className="elo">{isDebug() ? `${Math.round(player.elo)}${isNewPlayer(player, state.settings) ? " · new" : ""}` : isNewPlayer(player, state.settings) ? "new" : ""}</span>
           </button>
-          {player.username && <a className="mini-btn profile-link" href={profileHref(player.username)} aria-label={`Profile for ${player.username}`} title="Player profile">↗</a>}
+          {player.username && <a className="mini-btn profile-link" href={profileHref(player.username)} aria-label={`Profile for ${player.name}`} title="Player profile">↗</a>}
         </Fragment>)}</div>}
     </div>
     <div className="card"><div className="label" style={{ marginBottom: 8 }}>Add a new player</div><PlayerForm state={state} actions={actions} /></div>

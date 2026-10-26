@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { imageExtension, profileResponse, usernameFromName, validateUsername } from '../src/lib/player-api/logic.mjs';
+import { imageExtension, profileResponse, usernameFromName, validateName, validateUsername } from '../src/lib/player-api/logic.mjs';
 
 test('username seed is a lowercase URL-safe form of the player name', () => {
   assert.equal(usernameFromName('  Sam O’Neil  '), 'sam-o-neil');
@@ -27,10 +27,10 @@ test('image validation rejects spoofed, unsupported, and oversized uploads', () 
 
 test('public profile response is an explicit safe-field projection', () => {
   const result = profileResponse({
-    id: 4, username: 'sam', password: 'private', elo: 1200, tier: 'B', games_total: 8,
+    id: 4, name: 'Sam', username: 'sam', password: 'private', elo: 1200, tier: 'B', games_total: 8,
     profile_image_path: '4/profile.png', background_image_path: null, active: true, created_at: 'hidden',
   }, [{ ended_at: '2026-10-12T10:00:00Z', winner: 'A', team_a: [{ name: 'Sam', username: 'sam' }], team_b: [] }]);
-  assert.deepEqual(Object.keys(result), ['username', 'elo', 'tier', 'games_total', 'profile_image_path', 'background_image_path', 'history']);
+  assert.deepEqual(Object.keys(result), ['name', 'username', 'elo', 'tier', 'games_total', 'profile_image_path', 'background_image_path', 'history']);
   assert.equal(JSON.stringify(result).includes('private'), false);
   assert.equal(JSON.stringify(result).includes('created_at'), false);
 });
@@ -41,4 +41,13 @@ test('Player API route does not log request credentials or return a player row',
   assert.match(source, /profileResponse/);
   assert.doesNotMatch(source, /console\.(?:log|error|warn)\s*\([^\n]*(?:password|request\.json|formData)/i);
   assert.doesNotMatch(source, /return\s+json\(\s*player\s*\)/i);
+});
+
+test('display names are trimmed, collapsed, and limited to 40 characters', () => {
+  assert.equal(validateName('  Sam   Lee '), 'Sam Lee');
+  assert.equal(validateName('Ngọc Anh'), 'Ngọc Anh');
+  assert.throws(() => validateName('   '));
+  assert.throws(() => validateName('x'.repeat(41)));
+  assert.throws(() => validateName('bad\nname'.replace('\n', '\u0007')));
+  assert.throws(() => validateName(42));
 });
