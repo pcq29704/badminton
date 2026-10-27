@@ -74,3 +74,5 @@ Sign-in uses an `httpOnly` cookie named `player_session` (30 days, `SameSite=Lax
 hash of the token in `player_sessions`. Refreshing the page keeps the player signed in. Sign out clears the cookie and
 deletes that session only, so other devices stay signed in. Profile edits and image uploads no longer send the password.
 Plan: `docs/plans/2026-10-17-player-session-cookie.md`.
+
+Test
