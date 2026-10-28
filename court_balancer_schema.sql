@@ -152,7 +152,7 @@ grant execute on function public.claim_player_login(text, text) to service_role;
 create table public.sessions (
   id         bigint generated always as identity primary key,
   status     text not null default 'active' check (status in ('active', 'ended')),
-  rank_new_games boolean not null default false,
+  rank_new_games boolean not null default true,
   started_at timestamptz not null default now(),
   ended_at   timestamptz,
   check ((status = 'ended') = (ended_at is not null))

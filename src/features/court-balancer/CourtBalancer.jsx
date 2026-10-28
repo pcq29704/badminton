@@ -1,29 +1,30 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import ConfigurationMessage from "@/components/ConfigurationMessage";
+import { TopNav } from "@/components/AuthShell";
 import { useCourtBalancer } from "./useCourtBalancer";
 import { Header, Toast } from "./components/Shared";
 import AccessScreen from "./components/AccessScreen";
 import SetupScreen from "./components/SetupScreen";
 import PlayScreen from "./components/PlayScreen";
 
+const ORGANISER = { role: "organiser", username: "" };
+
 export default function CourtBalancer() {
-  const { state, actions: controls } = useCourtBalancer();
-  const router = useRouter();
-  const signedInHere = useRef(false);
-  // An explicit organiser sign-in lands on the dashboard. A saved session still opens the court manager.
-  const actions = controls && { ...controls, login: () => { signedInHere.current = true; return controls.login(); } };
-  const ready = state.phase === "setup" || state.phase === "play";
-  useEffect(() => { if (signedInHere.current && ready) router.replace("/dashboard"); }, [ready, router]);
-  if (state.phase === "login") return <><AccessScreen state={state} actions={actions} /><Toast toast={state.toast} actions={actions} /></>;
-  return <main className={`wrap${state.phase === "play" ? " wide" : ""}${state.busy ? " busy" : ""}`}>
-    {state.phase === "configuration" ? <><Header subtitle="Court Balancer" /><ConfigurationMessage /></>
-      : state.phase === "setup" ? <SetupScreen state={state} actions={actions} />
-      : state.phase === "play" ? <PlayScreen state={state} actions={actions} />
-      : <AccessScreen state={state} actions={actions} />}
-    {state.busy && <div className="saving" role="status">Saving…</div>}
-    <Toast toast={state.toast} actions={actions} />
-  </main>;
+  const { state, actions } = useCourtBalancer();
+  const toast = <Toast toast={state.toast} actions={actions} />;
+  // After an organiser signs in, the game setup screen (or the active game) shows on this page.
+  if (state.phase === "login") return <AccessScreen state={state} actions={actions}>{toast}</AccessScreen>;
+  const signedIn = state.phase === "setup" || state.phase === "play";
+  return <div className="ds-root ds-org">
+    <TopNav current="courts" viewer={signedIn ? ORGANISER : undefined} onSignOut={actions?.signOut} />
+    <main className={`ds-org-page${state.phase === "play" ? " wide" : ""}${state.busy ? " busy" : ""}`}>
+      {state.phase === "configuration" ? <><Header subtitle="Court Balancer" /><ConfigurationMessage /></>
+        : state.phase === "setup" ? <SetupScreen state={state} actions={actions} />
+        : state.phase === "play" ? <PlayScreen state={state} actions={actions} />
+        : <AccessScreen state={state} actions={actions} />}
+      {state.busy && <div className="ds-org-saving" role="status">Saving…</div>}
+      {toast}
+    </main>
+  </div>;
 }

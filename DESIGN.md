@@ -96,11 +96,11 @@ All values are CSS variables on `.ds-root` in `src/app/design.css`, so a new the
 
 ## Where it applies
 
-Scope of this system: the signed-in club dashboard (`/dashboard` and `/dashboard/<date>`, where every user lands after sign-in), the public player profile (`/`, `/profile.html`), its
-Dashboard / Games / Settings tabs, the player sign-in, and the organiser
-sign-in. The organiser court-management screens keep their original mint theme.
-All styles live in `src/app/design.css` under the `.ds-root` class so they never
-leak into the organiser screens.
+Scope of this system: the signed-in club dashboard (`/dashboard` and `/dashboard/<date>`, where players land after sign-in), the public player profile (`/`, `/profile.html`), its
+Dashboard / Games / Settings tabs, the player sign-in, the organiser
+sign-in, and the organiser court screens (`/organiser`: setup, courts, player status).
+All styles live in `src/app/design.css` under the `.ds-root` class. The organiser screens add
+`.ds-org` and use `ds-org-*` classes; they show each player with the profile picture inside the tier frame.
 
 ## Colors
 
@@ -158,7 +158,7 @@ No 12px or 16px tier.
 - **Do** let cover photos and avatars supply colour.
 - **Don't** use yellow fills, drop shadows, or a 12–16px radius.
 - **Don't** use gradients on the canvas.
-- **Don't** apply `.ds-root` styles to the organiser court screens.
+- **Do** show players on the organiser screens with `PlayerTag` (photo, tier frame, name).
 
 ## Known gaps
 

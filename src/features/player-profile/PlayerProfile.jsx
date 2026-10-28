@@ -7,6 +7,7 @@ import AuthShell from "@/components/AuthShell";
 import Shell from "@/components/Shell";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
 import { usePlayerProfile } from "./usePlayerProfile";
+import { useViewer } from "./useViewer";
 import PlayerAvatar, { RankIcon, tierKey } from "../../components/PlayerAvatar";
 import PlayerSignIn from "./PlayerSignIn";
 import ProfileSettings from "./ProfileSettings";
@@ -20,10 +21,11 @@ const RANK_NAMES = { S: "Iridescent", A: "Gold", B: "Silver", C: "Copper", D: "B
 export default function PlayerProfile() {
   const router = useRouter();
   const { state, actions } = usePlayerProfile({ onSignedIn: () => router.replace("/dashboard") });
+  const { viewer, signOut: signOutViewer } = useViewer();
   const [tab, setTab] = useState("stats");
   const profile = state.profile;
-  const viewer = state.loggedIn ? { role: "player", username: state.username } : undefined;
-  const shell = { current: viewer ? "profile" : state.restored || !hasSupabaseConfig ? "player" : "pending", viewer, onSignOut: actions.signOut };
+  // The nav shows who is signed in, even while someone else's profile is open.
+  const shell = { current: state.loggedIn ? "profile" : "", viewer, onSignOut: () => { void signOutViewer(); actions.signOut(); } };
 
   if (!hasSupabaseConfig) return <Shell {...shell}><ConfigurationMessage /></Shell>;
   if (!state.initialized) return <Shell {...shell}><p className="ds-empty">Loading player profile…</p></Shell>;

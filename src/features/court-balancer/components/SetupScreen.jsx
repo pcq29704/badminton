@@ -1,33 +1,34 @@
-import { Fragment } from "react";
-import { isDebug, profileHref } from "../helpers";
-import { Header, HelpPanel, PlayerForm, TierBadge, isNewPlayer } from "./Shared";
+import { isDebug } from "../helpers";
+import { Header, HelpPanel, PlayerForm, PlayerTag, isNewPlayer } from "./Shared";
 
 export default function SetupScreen({ state, actions }) {
   return <>
     <Header subtitle="Fair doubles rotations, balanced by Elo · v8" />
-    <div className="center" style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-      <button className="mini-btn" onClick={actions.toggleHelp}>? How to use / Hướng dẫn</button><button className="mini-btn" onClick={actions.signOut}>Sign out</button>
+    <div className="ds-org-actions center">
+      <button className="ds-btn tertiary" onClick={actions.toggleHelp}>? How to use / Hướng dẫn</button><button className="ds-btn tertiary" onClick={actions.signOut}>Sign out</button>
     </div>
     {state.showHelp && <HelpPanel state={state} actions={actions} />}
-    <div className="row" style={{ marginTop: 18 }}><div className="stepper">
-      <div className="label">Courts</div><div className="controls">
-        <button className="btn subtle" onClick={() => actions.bumpCourts(-1)}>−</button><span className="val">{state.setupCourts}</span><button className="btn subtle" onClick={() => actions.bumpCourts(1)}>+</button>
+    <div className="ds-org-stepper">
+      <div className="ds-org-label">Courts</div><div className="ds-org-stepper-controls">
+        <button className="ds-btn tertiary" aria-label="One court less" onClick={() => actions.bumpCourts(-1)}>−</button><span className="ds-org-stepper-val">{state.setupCourts}</span><button className="ds-btn tertiary" aria-label="One court more" onClick={() => actions.bumpCourts(1)}>+</button>
       </div>
-    </div></div>
-    <div className="card">
-      <div className="card-head"><div className="label">Who's here today ({state.picked.size})</div><div style={{ display: "flex", gap: 6 }}><button className="mini-btn" onClick={actions.pickAll}>All</button><button className="mini-btn" onClick={actions.pickNone}>None</button></div></div>
-      {!state.roster.length ? <p className="hint" style={{ margin: 0 }}>No players yet — add your group below. You only do this once.</p>
-        : <div className="chips">{state.roster.map((player) => <Fragment key={player.id}>
-          <button className={`chip pick${state.picked.has(player.id) ? " on" : ""}`} onClick={() => actions.togglePick(player.id)}>
-            {state.picked.has(player.id) ? "✓ " : ""}{player.name} <TierBadge code={player.tier} /><span className="elo">{isDebug() ? `${Math.round(player.elo)}${isNewPlayer(player, state.settings) ? " · new" : ""}` : isNewPlayer(player, state.settings) ? "new" : ""}</span>
-          </button>
-          {player.username && <a className="mini-btn profile-link" href={profileHref(player.username)} aria-label={`Profile for ${player.name}`} title="Player profile">↗</a>}
-        </Fragment>)}</div>}
     </div>
-    <div className="card"><div className="label" style={{ marginBottom: 8 }}>Add a new player</div><PlayerForm state={state} actions={actions} /></div>
-    <div className="center" style={{ marginTop: 16, paddingBottom: 30 }}>
-      <button className="btn big" onClick={actions.startDay} disabled={state.busy || state.picked.size < 4}>Start play day →</button>
-      {state.picked.size < 4 ? <p className="warn">Tick at least 4 players.</p> : state.picked.size < state.setupCourts * 4 && <p className="warn">Heads up: {state.picked.size} players can fill {Math.floor(state.picked.size / 4)} court(s) at a time.</p>}
+    <section className="ds-org-card">
+      <div className="ds-org-card-head"><h2 className="ds-org-label">Who's here today ({state.picked.size})</h2><div className="ds-org-actions"><button className="ds-btn tertiary ds-org-mini" onClick={actions.pickAll}>All</button><button className="ds-btn tertiary ds-org-mini" onClick={actions.pickNone}>None</button></div></div>
+      {!state.roster.length ? <p className="ds-hint">No players yet — add your group below. You only do this once.</p>
+        : <div className="ds-org-chips">{state.roster.map((player) => {
+          const isNew = isNewPlayer(player, state.settings);
+          const note = isDebug() ? `${Math.round(player.elo)}${isNew ? " · new" : ""}` : isNew ? "new" : "";
+          return <button key={player.id} className={`ds-org-pchip pick${state.picked.has(player.id) ? " on" : ""}`} aria-pressed={state.picked.has(player.id)} onClick={() => actions.togglePick(player.id)}>
+            <PlayerTag player={player} size="sm">{note && <span className="ds-org-note">{note}</span>}</PlayerTag>
+            <span className="ds-org-check" aria-hidden="true">✓</span>
+          </button>;
+        })}</div>}
+    </section>
+    <section className="ds-org-card"><h2 className="ds-org-label">Add a new player</h2><PlayerForm state={state} actions={actions} /></section>
+    <div className="ds-org-start">
+      <button className="ds-btn blue block" onClick={actions.startDay} disabled={state.busy || state.picked.size < 4}>Start play day →</button>
+      {state.picked.size < 4 ? <p className="ds-org-warn">Tick at least 4 players.</p> : state.picked.size < state.setupCourts * 4 && <p className="ds-org-warn">Heads up: {state.picked.size} players can fill {Math.floor(state.picked.size / 4)} court(s) at a time.</p>}
     </div>
   </>;
 }

@@ -121,6 +121,6 @@ erDiagram
 - `game_players` uses `(game_id, player_id)` as its primary key.
 - A partial unique index allows only one active session, and another allows only one `playing` game per court.
 - `courts` has a unique `(session_id, court_no)` pair.
-- `games.ranked` defaults to `false`; `sessions.rank_new_games` controls the setting copied to new games.
+- `games.ranked` defaults to `false`; `sessions.rank_new_games` defaults to `true` (the toggle is hidden in the UI) and controls the setting copied to new games.
 - `players.username` and both image paths come from the player profile migration. Profile images use the public `player-profile-images` bucket.
 - The local SQL schema defines functions and RLS policies in addition to these tables; they are omitted from this entity relationship diagram.

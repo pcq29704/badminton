@@ -187,7 +187,7 @@ export function createCourtBalancer(db, onChange) {
     let row;
     try {
       row = await q(db.from("players").insert({ name, username, tier: state.newTier })
-        .select("id,name,username,elo,tier,games_total").single());
+        .select("id,name,username,elo,tier,games_total,profile_image_path").single());
     } catch (e) {
       if (disposed) return;
       if (/players_username_unique|duplicate key value/i.test(e.message || "")) {

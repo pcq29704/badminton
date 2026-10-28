@@ -12,7 +12,7 @@ export async function loadBasics(db, state, q) {
 }
 
 export async function loadRoster(db, state, q) {
-  const rows = await q(db.from("players").select("id,name,username,elo,tier,games_total").eq("active", true).order("name"));
+  const rows = await q(db.from("players").select("id,name,username,elo,tier,games_total,profile_image_path").eq("active", true).order("name"));
   state.roster = rows.map((p) => ({ ...p, elo: Number(p.elo) }));
 }
 
@@ -21,7 +21,7 @@ export async function loadSession(db, state, q, id) {
   const [sess, sps, courts, games, prev] = await Promise.all([
     q(db.from("sessions").select("id,started_at,status,rank_new_games").eq("id", id).single()),
     q(db.from("session_players")
-      .select("player_id,games,consec,status,pending_remove,players(id,name,username,elo,tier,games_total)")
+      .select("player_id,games,consec,status,pending_remove,players(id,name,username,elo,tier,games_total,profile_image_path)")
       .eq("session_id", id).is("left_at", null)),
     q(db.from("courts").select("id,court_no,closing,hold_started_at,removed_at").eq("session_id", id).order("court_no")),
     q(db.from("games")
@@ -38,6 +38,7 @@ export async function loadSession(db, state, q, id) {
     id: r.player_id,
     name: r.players.name,
     username: r.players.username,
+    profile_image_path: r.players.profile_image_path || "",
     elo: Number(r.players.elo),
     tier: r.players.tier,
     gamesTotal: r.players.games_total,

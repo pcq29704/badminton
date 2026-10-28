@@ -35,6 +35,8 @@ export default function DayPage() {
   const { date } = useParams();
   const { loading, viewer, games, ranking, error, signOut } = useClubGames();
   const [focus, setFocus] = useState("");
+  // On tablets and phones the standings start closed so the matches stay near the top. Desktop always shows them.
+  const [standingsOpen, setStandingsOpen] = useState(() => typeof window === "undefined" || !window.matchMedia("(max-width: 960px)").matches);
   const day = useMemo(() => isDayKey(date) ? groupGamesByDay(games).find((entry) => entry.key === date) : null, [games, date]);
   const standings = useMemo(() => day ? dayStandings(day.games) : [], [day]);
   const profiles = useMemo(() => new Map((ranking || []).map((player) => [playerKey(player), player])), [ranking]);
@@ -85,7 +87,11 @@ export default function DayPage() {
         </section>
 
         <aside className="ds-dp-standings" aria-labelledby="standings-title">
-          <h2 id="standings-title" className="ds-h2">Day standings</h2>
+          <div className="ds-dp-standings-head">
+            <h2 id="standings-title" className="ds-h2">Day standings</h2>
+            <button type="button" className="ds-btn tertiary ds-dp-toggle" aria-expanded={standingsOpen} aria-controls="standings-body" onClick={() => setStandingsOpen((open) => !open)}>{standingsOpen ? "Hide" : "Show"}</button>
+          </div>
+          <div id="standings-body" className={`ds-dp-standings-body${standingsOpen ? "" : " collapsed"}`}>
           <p className="ds-hint">Pick a player to see only their matches.</p>
           <ol className="ds-dp-table">{standings.map((row, index) => {
             const played = row.wins + row.losses;
@@ -100,6 +106,7 @@ export default function DayPage() {
               </button>
             </li>;
           })}</ol>
+          </div>
         </aside>
       </div>
     </div>

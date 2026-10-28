@@ -1,13 +1,13 @@
-import { Delta, TierBadge, isNewPlayer } from "./Shared";
+import { Delta, PlayerTag, isNewPlayer } from "./Shared";
 
 export default function StatsPanel({ state }) {
-  return <div className="card"><div className="label" style={{ marginBottom: 8 }}>Today</div>
-    <div className="stat-row stat-head"><span>Player</span><span>Rating · games</span></div>
-    {[...state.players].sort((a, b) => b.elo - a.elo).map((player) => <div className="stat-row" key={player.id}>
-      <span>{player.name} <TierBadge code={player.tier} />{isNewPlayer(player, state.settings) && <span className="elo"> new</span>}
-        {player.status === "break" && <span style={{ color: "var(--rest)" }}> · break</span>}{player.status === "keen" && <span style={{ color: "var(--keen)" }}> · keen ⚡</span>}
-      </span>
+  return <section className="ds-org-card"><h2 className="ds-org-label">Today</h2>
+    <div className="ds-org-stat ds-org-stat-head"><span>Player</span><span>Rating · games</span></div>
+    {[...state.players].sort((a, b) => b.elo - a.elo).map((player) => <div className="ds-org-stat" key={player.id}>
+      <PlayerTag player={player} size="sm">{isNewPlayer(player, state.settings) && <span className="ds-org-note">new</span>}
+        {player.status === "break" && <span className="ds-org-status rest">break</span>}{player.status === "keen" && <span className="ds-org-status keen">keen ⚡</span>}
+      </PlayerTag>
       <span><b>{Math.round(player.elo)}</b> {Math.round(player.elo - player.eloStart) !== 0 && <Delta value={player.elo - player.eloStart} />} · {player.games}{player.consec >= 2 ? " 💃" : ""}</span>
     </div>)}
-  </div>;
+  </section>;
 }
