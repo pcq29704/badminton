@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import ConfigurationMessage from "@/components/ConfigurationMessage";
 import Shell from "@/components/Shell";
+import { Card, Notice } from "@/components/ui";
 import { useIsClient } from "@/lib/useIsClient";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
 import { useClubGames } from "./useClubGames";
@@ -17,27 +18,28 @@ export default function DashboardPage() {
   const days = useMemo(() => groupGamesByDay(games), [games]);
   // Days are grouped in the viewer's time zone, so the list draws in the browser (the data is already here).
   const isClient = useIsClient();
-  const shell = { current: "dashboard", viewer, onSignOut: signOut };
+  const shell = { current: "dashboard", viewer, onSignOut: signOut, page: "cb-page" };
 
   if (!hasSupabaseConfig) return <Shell {...shell}><ConfigurationMessage /></Shell>;
-  if (error) return <Shell {...shell}><p className="ds-alert error" role="alert">{error}</p></Shell>;
-  if (loading || !isClient) return <Shell {...shell}><p className="ds-empty">Loading your dashboard…</p></Shell>;
+  if (error) return <Shell {...shell}><Notice tone="error">{error}</Notice></Shell>;
+  if (loading || !isClient) return <Shell {...shell}><p className="cb-empty" role="status">Loading your dashboard…</p></Shell>;
 
   return <Shell {...shell}>
-    <div className="ds-dash">
+    <h1 className="cb-sr">Dashboard</h1>
     <RankLadder />
-    <div className="ds-dash-history">
-    <h1 className="ds-title ds-dash-heading">Days played</h1>
-    <p className="ds-lead">{days.length ? `${plural(days.length, "day")} · ${plural(games.length, "finished game")}. Pick a day to see every match.` : "Every day the club plays shows up here."}</p>
-    {days.length ? <ul className="ds-days">{days.map((day) => <li key={day.key}>
-      <a className="ds-day" href={`/dashboard/${day.key}`}>
-        <span className="ds-day-date">{dayLabel(day.date)}</span>
-        <span className="ds-day-games">{plural(day.games.length, "game")}</span>
-        <span className="ds-day-record">{plural(day.playerCount, "player")}</span>
-        <span className="ds-day-go" aria-hidden="true">→</span>
-      </a>
-    </li>)}</ul> : <p className="ds-empty">No finished games yet.</p>}
-    </div>
-    </div>
+    <Card
+      title="Days played"
+      note={days.length ? `${plural(days.length, "day")} · ${plural(games.length, "finished game")}. Pick a day to see every match.` : "Every day the club plays shows up here."}
+    >
+      {days.length
+        ? <ul className="cb-days">{days.map((day) => <li key={day.key}>
+          <a href={`/dashboard/${day.key}`}>
+            <span className="cb-day-date">{dayLabel(day.date)}</span>
+            <span className="cb-day-meta">{plural(day.games.length, "game")} · {plural(day.playerCount, "player")}</span>
+            <span className="cb-day-go" aria-hidden="true" />
+          </a>
+        </li>)}</ul>
+        : <p className="cb-empty">No finished games yet.</p>}
+    </Card>
   </Shell>;
 }

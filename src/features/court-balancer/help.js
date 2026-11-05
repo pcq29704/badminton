@@ -11,9 +11,9 @@ export const HELP = {
       ["Playing a game", [
         "Each court shows two teams either side of the dashed net. When the game ends, tap <b>🏆 Won</b> under the winning side.",
         "New matches are unranked by default. Use the ranked toggle to make future matches ranked; matches already on court keep their mode.",
-        "Ranked results update ratings. Unranked results record the winner without changing ratings. Tapped the wrong side? Tap <b>⇄ Flip result</b> in the pop-up. This works until one of those four players finishes another game.",
+        "Ranked results update ratings. Unranked results record the winner without changing ratings. Tapped the wrong side? Tap <b>Flip result</b> in the pop-up. This works until one of those four players finishes another game.",
         "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting until every court has finished. Then all courts are filled together from the full pool, so games stay fresh and fair. <b>▶ Fill now</b> skips the wait.",
-        "<b>↻ Remix</b> redraws one court's game (only before it starts). <b>↻ All</b> redraws every court."
+        "<b>Remix</b> redraws one court's game (only before it starts). <b>Remix all</b> redraws every court."
       ]],
       ["Taking a break or asking to play", [
         "Tap a name chip to cycle through three states:",
@@ -33,7 +33,7 @@ export const HELP = {
         "New players' ratings move faster for their first 10 games, so a wrong starting tier corrects itself quickly."
       ]],
       ["Adjusting on the fly", [
-        "<b>+ Court</b> adds a court mid-session. <b>✕ End</b> removes one — straight away if empty, or after its current game.",
+        "<b>Add court</b> adds a court mid-session. <b>End</b> removes one — straight away if empty, or after its current game.",
         "<b>Players</b> panel: add someone who arrives late (existing or new), or remove someone leaving early. Removing a player mid-game flags them to leave once that game ends."
       ]],
       ["Good to know", [
@@ -55,9 +55,9 @@ export const HELP = {
       ["Khi chơi", [
         "Mỗi sân hiển thị hai đội ở hai bên lưới. Khi trận kết thúc, bấm <b>🏆 Won</b> ở dưới đội thắng.",
         "Trận mới mặc định không tính điểm. Bật nút Ranked để các trận tạo sau đó được tính điểm; trận đang trên sân giữ nguyên chế độ.",
-        "Trận Ranked cập nhật điểm. Trận Unranked chỉ lưu đội thắng, không đổi điểm. Bấm nhầm đội? Bấm <b>⇄ Flip result</b> trong thông báo. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
+        "Trận Ranked cập nhật điểm. Trận Unranked chỉ lưu đội thắng, không đổi điểm. Bấm nhầm đội? Bấm <b>Flip result</b> trong thông báo. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
         "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi cho tới khi tất cả các sân đều xong. Khi đó mọi sân được xếp trận cùng lúc từ toàn bộ người chơi, để trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
-        "<b>↻ Remix</b> xếp lại trận của một sân (chỉ trước khi bắt đầu đánh). <b>↻ All</b> xếp lại tất cả các sân."
+        "<b>Remix</b> xếp lại trận của một sân (chỉ trước khi bắt đầu đánh). <b>Remix all</b> xếp lại tất cả các sân."
       ]],
       ["Nghỉ hoặc xin được chơi", [
         "Bấm vào tên để đổi giữa ba trạng thái:",
@@ -77,7 +77,7 @@ export const HELP = {
         "Người mới thay đổi điểm nhanh hơn trong 10 trận đầu, nên nếu chọn tier ban đầu sai thì sẽ tự điều chỉnh nhanh."
       ]],
       ["Điều chỉnh giữa buổi", [
-        "<b>+ Court</b> thêm sân giữa buổi. <b>✕ End</b> xoá sân — xoá ngay nếu sân trống, hoặc sau khi trận hiện tại xong.",
+        "<b>Add court</b> thêm sân giữa buổi. <b>End</b> xoá sân — xoá ngay nếu sân trống, hoặc sau khi trận hiện tại xong.",
         "Bảng <b>Players</b>: thêm người đến muộn (đã có hoặc mới), hoặc xoá người về sớm. Xoá người đang thi đấu chỉ đánh dấu để họ rời sau khi trận đó kết thúc."
       ]],
       ["Lưu ý", [

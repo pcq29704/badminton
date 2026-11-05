@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import ConfigurationMessage from "@/components/ConfigurationMessage";
-import MatchCard, { playerKey } from "@/components/MatchCard";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import Shell from "@/components/Shell";
+import { Button, Card, MatchRow, Notice, StatStrip, playerKey } from "@/components/ui";
 import { useIsClient } from "@/lib/useIsClient";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
 import { useClubGames } from "./useClubGames";
@@ -30,7 +30,7 @@ function dayStandings(games) {
   return [...rows.values()].sort((a, b) => b.wins - a.wins || a.losses - b.losses || a.name.localeCompare(b.name));
 }
 
-const back = <a className="ds-back" href="/dashboard">← Dashboard</a>;
+const back = <a className="cb-back cb-link" href="/dashboard">← Dashboard</a>;
 
 export default function DayPage() {
   const { date } = useParams();
@@ -43,12 +43,12 @@ export default function DayPage() {
   const profiles = useMemo(() => new Map((ranking || []).map((player) => [playerKey(player), player])), [ranking]);
   // Days are grouped in the viewer's time zone, so the list draws in the browser (the data is already here).
   const isClient = useIsClient();
-  const shell = { current: "dashboard", viewer, onSignOut: signOut };
+  const shell = { current: "dashboard", viewer, onSignOut: signOut, page: "cb-page" };
 
   if (!hasSupabaseConfig) return <Shell {...shell}><ConfigurationMessage /></Shell>;
-  if (error) return <Shell {...shell}>{back}<p className="ds-alert error" role="alert">{error}</p></Shell>;
-  if (loading || !isClient) return <Shell {...shell}><p className="ds-empty">Loading matches…</p></Shell>;
-  if (!day) return <Shell {...shell}>{back}<p className="ds-empty">No games found for this day.</p></Shell>;
+  if (error) return <Shell {...shell}>{back}<Notice tone="error">{error}</Notice></Shell>;
+  if (loading || !isClient) return <Shell {...shell}><p className="cb-empty" role="status">Loading matches…</p></Shell>;
+  if (!day) return <Shell {...shell}>{back}<p className="cb-empty">No games found for this day.</p></Shell>;
 
   const withProfile = (player) => ({ ...profiles.get(playerKey(player)), ...player });
   const numbered = day.games.map((game, index) => ({ ...game, team_a: game.team_a.map(withProfile), team_b: game.team_b.map(withProfile), number: index + 1 }));
@@ -58,60 +58,59 @@ export default function DayPage() {
   const first = day.games[0].endedAt;
   const last = day.games[day.games.length - 1].endedAt;
   const unranked = day.games.length - day.rankedCount;
+  const stats = [
+    { label: "Games", value: day.games.length },
+    { label: "Players", value: day.playerCount },
+    { label: "Courts", value: courts || "–" },
+    { label: "Ranked", value: day.rankedCount, unit: unranked > 0 ? ` / ${day.games.length}` : undefined },
+  ];
 
   return <Shell {...shell}>
-    <div className="ds-daypage">
-      {back}
-      <header className="ds-dp-head">
-        <h1 className="ds-username">{day.date.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</h1>
-        <p className="ds-sub">{first === last ? timeLabel(first) : `${timeLabel(first)} – ${timeLabel(last)}`}</p>
-      </header>
+    {back}
+    <header className="cb-day-head">
+      <h1 className="cb-display-title">{day.date.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</h1>
+      <p className="cb-note">{first === last ? timeLabel(first) : `${timeLabel(first)} – ${timeLabel(last)}`}</p>
+    </header>
 
-      <dl className="ds-dp-stats">
-        <div><dt>Games</dt><dd>{day.games.length}</dd></div>
-        <div><dt>Players</dt><dd>{day.playerCount}</dd></div>
-        <div><dt>Courts</dt><dd>{courts || "–"}</dd></div>
-        <div><dt>Ranked</dt><dd>{day.rankedCount}{unranked > 0 && <small> / {day.games.length}</small>}</dd></div>
-      </dl>
+    <StatStrip items={stats} label="Day summary" />
 
-      <div className="ds-dp-layout">
-        <section className="ds-dp-matches" aria-labelledby="matches-title">
-          <div className="ds-dp-bar">
-            <h2 id="matches-title" className="ds-h2">{focused ? `${focused.name}'s matches` : "Matches"}</h2>
-            <span className="ds-dp-count">{shown.length} of {day.games.length}</span>
-            {focus && <button type="button" className="ds-btn tertiary" onClick={() => setFocus("")}>Show all</button>}
-          </div>
-          <ol className="ds-dp-list">{shown.map((game) => <MatchCard key={game.id ?? game.endedAt} game={game} viewer={viewer} focus={focus} meta={<>
-              <span className="ds-dp-num">#{game.number}</span>
-              <span>{timeLabel(game.endedAt)}</span>
-              {game.court_no != null && <span className="ds-dp-court">Court {game.court_no}</span>}
-              {!game.ranked && <span className="ds-dp-tag">Unranked</span>}
-            </>} />)}</ol>
-        </section>
+    <div className="cb-day-layout">
+      <Card
+        title={focused ? `${focused.name}'s matches` : "Matches"}
+        note={`${shown.length} of ${day.games.length}`}
+        tools={focus ? <Button variant="quiet" onClick={() => setFocus("")}>Show all</Button> : undefined}
+      >
+        <ol className="cb-matches">{shown.map((game) => <MatchRow key={game.id ?? game.endedAt} game={game} viewer={viewer} focusKey={focus} meta={<>
+          <b className="cb-match-num">#{game.number}</b>
+          <span className="cb-note">{timeLabel(game.endedAt)}</span>
+          {game.court_no != null && <span className="cb-tag">Court {game.court_no}</span>}
+          {!game.ranked && <span className="cb-tag faint">Unranked</span>}
+        </>} />)}</ol>
+      </Card>
 
-        <aside className="ds-dp-standings" aria-labelledby="standings-title">
-          <div className="ds-dp-standings-head">
-            <h2 id="standings-title" className="ds-h2">Day standings</h2>
-            <button type="button" className="ds-btn tertiary ds-dp-toggle" aria-expanded={standingsOpen} aria-controls="standings-body" onClick={() => setStandingsOpen((open) => !open)}>{standingsOpen ? "Hide" : "Show"}</button>
-          </div>
-          <div id="standings-body" className={`ds-dp-standings-body${standingsOpen ? "" : " collapsed"}`}>
-          <p className="ds-hint">Pick a player to see only their matches.</p>
-          <ol className="ds-dp-table">{standings.map((row, index) => {
+      <Card
+        as="aside"
+        className="cb-standings"
+        title="Day standings"
+        note="Pick a player to see only their matches."
+        tools={<button type="button" className="cb-chip cb-standings-toggle" aria-expanded={standingsOpen} aria-controls="standings-body" onClick={() => setStandingsOpen((open) => !open)}>{standingsOpen ? "Hide" : "Show"}</button>}
+      >
+        <div id="standings-body" className={standingsOpen ? undefined : "collapsed"}>
+          <ol className="cb-stand-list">{standings.map((row, index) => {
             const played = row.wins + row.losses;
             const active = focus === row.key;
             return <li key={row.key}>
-              <button type="button" className={`ds-dp-row${active ? " active" : ""}`} aria-pressed={active} onClick={() => setFocus(active ? "" : row.key)}>
-                <span className="ds-dp-pos">{index + 1}</span>
-                <PlayerAvatar className="ds-dp-avatar" path={profiles.get(row.key)?.profile_image_path} tier={profiles.get(row.key)?.tier} />
-                <span className="ds-dp-name">{row.name}</span>
-                <span className="ds-dp-record"><b>{row.wins}</b>–{row.losses}</span>
-                <span className="ds-dp-rate" style={{ "--rate": played ? row.wins / played : 0 }} aria-label={`${played ? Math.round((row.wins / played) * 100) : 0}% wins`} />
+              <button type="button" className="cb-stand-row" aria-pressed={active} onClick={() => setFocus(active ? "" : row.key)}>
+                <span className="cb-stand-pos">{index + 1}</span>
+                <PlayerAvatar className="cb-avatar-sm" path={profiles.get(row.key)?.profile_image_path} tier={profiles.get(row.key)?.tier} name={row.name} />
+                <span className="cb-ledger-name">{row.name}</span>
+                <span className="cb-ledger-rec"><b>{row.wins}</b>–{row.losses}</span>
+                <span className="cb-ledger-bar" aria-label={`${played ? Math.round((row.wins / played) * 100) : 0}% wins`}><i style={{ width: `${played ? (row.wins / played) * 100 : 0}%` }} /></span>
               </button>
             </li>;
           })}</ol>
-          </div>
-        </aside>
-      </div>
+        </div>
+      </Card>
     </div>
   </Shell>;
 }

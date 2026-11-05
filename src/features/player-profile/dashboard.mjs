@@ -6,7 +6,8 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const same = (a, b) => String(a || "").toLowerCase() === String(b || "").toLowerCase();
 
 function bump(map, key, player, won) {
-  const entry = map.get(key) || { name: player.name, username: player.username || null, games: 0, wins: 0 };
+  // tier and profile_image_path let the lists show the player's framed avatar.
+  const entry = map.get(key) || { name: player.name, username: player.username || null, tier: player.tier || null, profile_image_path: player.profile_image_path || null, games: 0, wins: 0 };
   entry.games += 1;
   if (won) entry.wins += 1;
   map.set(key, entry);

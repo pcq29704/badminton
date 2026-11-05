@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
+import { Button, Card, Notice } from "@/components/ui";
 
 const OUTPUT_SIZE = 512;
 
@@ -26,7 +27,7 @@ async function cropToFile(src, area, name) {
   return new File([blob], `${name.replace(/\.[^.]+$/, "") || "profile"}.jpg`, { type: "image/jpeg" });
 }
 
-// Lets the player drag and zoom the chosen photo inside a round frame before it is uploaded.
+// Lets the player drag and zoom the chosen photo inside a round frame before it is uploaded. Escape cancels.
 export default function ImageCropper({ file, onCancel, onConfirm }) {
   const [src, setSrc] = useState("");
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -52,17 +53,20 @@ export default function ImageCropper({ file, onCancel, onConfirm }) {
     }
   }
 
-  return <div className="ds-crop" role="dialog" aria-modal="true" aria-label="Adjust profile image">
-    <div className="ds-crop-card">
-      <div className="ds-crop-stage">
+  return <div className="cb-crop" role="dialog" aria-modal="true" aria-labelledby="crop-title" onKeyDown={(event) => { if (event.key === "Escape" && !working) onCancel(); }}>
+    <Card as="div" className="cb-crop-card">
+      <h2 className="cb-title" id="crop-title">Crop your picture</h2>
+      <p className="cb-note">Drag to move. Use the slider to zoom.</p>
+      <div className="cb-crop-stage">
         {src && <Cropper image={src} crop={crop} zoom={zoom} aspect={1} cropShape="round" showGrid={false} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={(_, pixels) => setArea(pixels)} />}
       </div>
-      <input className="ds-crop-zoom" type="range" min={1} max={3} step={0.01} value={zoom} aria-label="Zoom" onChange={(event) => setZoom(Number(event.target.value))} />
-      {error && <p role="alert">{error}</p>}
-      <div className="ds-row">
-        <button className="ds-btn tertiary" type="button" onClick={onCancel} disabled={working}>Cancel</button>
-        <button className="ds-btn" type="button" onClick={confirm} disabled={working || !area}>Save</button>
+      <label className="cb-label" htmlFor="crop-zoom">Zoom</label>
+      <input className="cb-crop-zoom" id="crop-zoom" type="range" min={1} max={3} step={0.01} value={zoom} autoFocus onChange={(event) => setZoom(Number(event.target.value))} />
+      <Notice tone="error">{error}</Notice>
+      <div className="cb-crop-actions">
+        <Button variant="quiet" onClick={onCancel} disabled={working}>Cancel</Button>
+        <Button onClick={confirm} disabled={working || !area}>{working ? "Saving…" : "Save picture"}</Button>
       </div>
-    </div>
+    </Card>
   </div>;
 }
