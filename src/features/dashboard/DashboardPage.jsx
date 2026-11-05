@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import ConfigurationMessage from "@/components/ConfigurationMessage";
 import Shell from "@/components/Shell";
+import { useIsClient } from "@/lib/useIsClient";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
 import { useClubGames } from "./useClubGames";
 import { groupGamesByDay } from "./days.mjs";
@@ -14,11 +15,13 @@ const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
 export default function DashboardPage() {
   const { loading, viewer, games, error, signOut } = useClubGames();
   const days = useMemo(() => groupGamesByDay(games), [games]);
+  // Days are grouped in the viewer's time zone, so the list draws in the browser (the data is already here).
+  const isClient = useIsClient();
   const shell = { current: "dashboard", viewer, onSignOut: signOut };
 
   if (!hasSupabaseConfig) return <Shell {...shell}><ConfigurationMessage /></Shell>;
   if (error) return <Shell {...shell}><p className="ds-alert error" role="alert">{error}</p></Shell>;
-  if (loading) return <Shell {...shell}><p className="ds-empty">Loading your dashboard…</p></Shell>;
+  if (loading || !isClient) return <Shell {...shell}><p className="ds-empty">Loading your dashboard…</p></Shell>;
 
   return <Shell {...shell}>
     <div className="ds-dash">

@@ -1,3 +1,4 @@
+import LocalDate from "@/components/LocalDate";
 import MatchCard from "../../components/MatchCard";
 
 export default function ProfileHistory({ games, username }) {
@@ -6,6 +7,6 @@ export default function ProfileHistory({ games, username }) {
     key={`${game.ended_at}-${index}`}
     game={game}
     focus={username}
-    meta={<span>{game.ended_at ? new Date(game.ended_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Date unavailable"}</span>}
+    meta={<span>{game.ended_at ? <LocalDate value={game.ended_at} options={{ dateStyle: "medium", timeStyle: "short" }} /> : "Date unavailable"}</span>}
   />)}</ol>;
 }

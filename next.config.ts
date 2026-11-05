@@ -5,7 +5,11 @@ const nextConfig: NextConfig = {
     agentUpgrade: "security",
   },
   async redirects() {
-    return [{ source: "/index.html", destination: "/", permanent: true }];
+    // Old links keep working; Next passes the query string (?u=) through.
+    return [
+      { source: "/index.html", destination: "/", permanent: true },
+      { source: "/profile.html", destination: "/profile", permanent: true },
+    ];
   },
 };
 

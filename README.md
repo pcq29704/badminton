@@ -12,7 +12,7 @@ npm run dev
 ```
 
 Open http://localhost:3000 for player sign-in. The organiser app uses
-`/organiser`, and player profiles use `/profile.html?u=<username>`.
+`/organiser`, and player profiles use `/profile?u=<username>`.
 Without development credentials, these routes show
 a configuration message and make no Supabase requests.
 

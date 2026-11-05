@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Marcellus_SC } from "next/font/google";
+import Providers from "@/lib/query/Providers";
 import "./globals.css";
 import "./design.css";
 
@@ -21,7 +22,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={displayFont.variable}>
-      <body>{children}</body>
+      <body><Providers>{children}</Providers></body>
     </html>
   );
 }

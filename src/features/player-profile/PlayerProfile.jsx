@@ -8,24 +8,22 @@ import Shell from "@/components/Shell";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
 import { usePlayerProfile } from "./usePlayerProfile";
 import { useViewer } from "./useViewer";
+import { RANK_NAMES } from "@/lib/rank-names";
 import PlayerAvatar, { RankIcon, tierKey } from "../../components/PlayerAvatar";
 import PlayerSignIn from "./PlayerSignIn";
 import ProfileSettings from "./ProfileSettings";
 import ProfileHistory from "./ProfileHistory";
 import ProfileStats from "./ProfileStats";
 
-// Metal name of each rank badge, shown next to the rank letter.
-const RANK_NAMES = { S: "Iridescent", A: "Gold", B: "Silver", C: "Copper", D: "Bronze" };
-
 // Public profile and player sign-in. Signing in sends the player to the dashboard at /dashboard.
-export default function PlayerProfile() {
+export default function PlayerProfile({ initialUsername = "" }) {
   const router = useRouter();
-  const { state, actions } = usePlayerProfile({ onSignedIn: () => router.replace("/dashboard") });
-  const { viewer, signOut: signOutViewer } = useViewer();
+  const { state, actions } = usePlayerProfile({ initialUsername, onSignedIn: () => router.replace("/dashboard") });
+  const { viewer } = useViewer();
   const [tab, setTab] = useState("stats");
   const profile = state.profile;
   // The nav shows who is signed in, even while someone else's profile is open.
-  const shell = { current: state.loggedIn ? "profile" : "", viewer, onSignOut: () => { void signOutViewer(); actions.signOut(); } };
+  const shell = { current: state.loggedIn ? "profile" : "", viewer, onSignOut: actions.signOut };
 
   if (!hasSupabaseConfig) return <Shell {...shell}><ConfigurationMessage /></Shell>;
   if (!state.initialized) return <Shell {...shell}><p className="ds-empty">Loading player profile…</p></Shell>;
@@ -53,7 +51,7 @@ export default function PlayerProfile() {
         <div className="ds-identity-text">
           <h1 className="ds-username">{profile.name || profile.username}</h1>
           <p className="ds-sub">Elo {profile.elo} · {profile.games_total} games</p>
-          {rank && <span className="ds-rank-pill"><RankIcon tier={rank} className="ds-rank-pill-icon" />Rank {rank} · {RANK_NAMES[rank]}</span>}
+          {rank && <span className="ds-rank-pill"><RankIcon tier={rank} className="ds-rank-pill-icon" />{RANK_NAMES[rank]}</span>}
         </div>
         <div className="ds-emblem"><RankIcon tier={profile.tier} className="ds-emblem-icon" /></div>
       </div>

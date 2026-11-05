@@ -31,6 +31,9 @@ export async function uploadPlayerImage(kind, file, signal) {
 }
 
 export function profileImageUrl(path) {
-  if (!path || !supabaseUrl) return "";
+  if (!path) return "";
+  // A local preview while an upload is in progress.
+  if (String(path).startsWith("blob:")) return path;
+  if (!supabaseUrl) return "";
   return `${supabaseUrl}/storage/v1/object/public/player-profile-images/${String(path).split("/").map(encodeURIComponent).join("/")}`;
 }

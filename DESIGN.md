@@ -96,7 +96,7 @@ All values are CSS variables on `.ds-root` in `src/app/design.css`, so a new the
 
 ## Where it applies
 
-Scope of this system: the signed-in club dashboard (`/dashboard` and `/dashboard/<date>`, where players land after sign-in), the public player profile (`/`, `/profile.html`), its
+Scope of this system: the signed-in club dashboard (`/dashboard` and `/dashboard/<date>`, where players land after sign-in), the public player profile (`/`, `/profile`), its
 Dashboard / Games / Settings tabs, the player sign-in, the organiser
 sign-in, and the organiser court screens (`/organiser`: setup, courts, player status).
 All styles live in `src/app/design.css` under the `.ds-root` class. The organiser screens add

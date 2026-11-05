@@ -1,19 +1,17 @@
 import { getAdminClient } from "@/lib/supabase/admin";
-import { gamesResponse, imageExtension, rankingResponse, profileResponse, validateImageSize, validateName, validateUsername } from "@/lib/player-api/logic.mjs";
+import { imageExtension, validateImageSize, validateName, validateUsername } from "@/lib/player-api/logic.mjs";
+import { ApiError, loadGames, loadProfile, loadRanking, playerForToken, playerViewer, type Db } from "@/lib/player-api/data";
 import {
   clearedSessionCookie,
   hashSessionToken,
   newSessionToken,
   readSessionToken,
-  REFRESH_AFTER_MS,
   sessionCookie,
   sessionExpiry,
 } from "@/lib/player-api/session.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type Db = ReturnType<typeof getAdminClient>;
 
 function json(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store", ...headers } });
@@ -41,35 +39,15 @@ async function createSession(db: Db, playerId: number) {
   return error ? null : token;
 }
 
-// Returns the signed-in player for this request, or null. Refreshes the expiry at most once per 24 hours.
-async function requireSession(db: Db, request: Request) {
-  const token = readSessionToken(request.headers.get("cookie"));
-  if (!token) return null;
-  const now = new Date();
-  const { data: row, error } = await db.from("player_sessions")
-    .select("id,player_id,last_used_at")
-    .eq("token_hash", hashSessionToken(token))
-    .gt("expires_at", now.toISOString())
-    .maybeSingle();
-  if (error || !row) return null;
-  const { data: player, error: playerError } = await db.from("players")
-    .select("id,name,username")
-    .eq("id", row.player_id)
-    .maybeSingle();
-  if (playerError || !player) return null;
-
-  if (now.getTime() - new Date(row.last_used_at).getTime() >= REFRESH_AFTER_MS) {
-    await db.from("player_sessions")
-      .update({ last_used_at: now.toISOString(), expires_at: sessionExpiry(now).toISOString() })
-      .eq("id", row.id);
-  }
-  return { player_id: player.id as number, name: (player.name || player.username) as string, username: player.username as string, session_id: row.id as string };
+// Returns the signed-in player for this request, or null.
+function requireSession(db: Db, request: Request) {
+  return playerForToken(db, readSessionToken(request.headers.get("cookie")));
 }
 
 // Identifies the viewer for read-only club data: a player session cookie, or an organiser's Supabase access token.
 async function requireViewer(db: Db, request: Request) {
   const player = await requireSession(db, request);
-  if (player) return { role: "player" as const, name: player.name, username: player.username };
+  if (player) return playerViewer(player);
   const auth = request.headers.get("authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
   if (!token || token.length > 4096) return null;
@@ -80,25 +58,13 @@ async function requireViewer(db: Db, request: Request) {
   return { role: "organiser" as const, name: data.user.email || "Organiser", username: "" };
 }
 
-const GAMES_LIMIT = 1000;
-
-async function clubGames(db: Db) {
-  const { data, error } = await db.from("games")
-    .select("id,ended_at,winner,ranked,courts(court_no),game_players(team,players(name,username))")
-    .eq("status", "finished")
-    .not("ended_at", "is", null)
-    .order("ended_at", { ascending: false })
-    .limit(GAMES_LIMIT);
-  if (error) return json({ error: "Could not load match history." }, 500);
-  return json({ games: gamesResponse(data as any[]) });
-}
-
-async function clubRanking(db: Db) {
-  const { data, error } = await db.from("players")
-    .select("name,username,elo,tier,games_total,profile_image_path")
-    .eq("active", true);
-  if (error) return json({ error: "Could not load the ranking." }, 500);
-  return json({ ranking: rankingResponse(data as any[]) });
+// Turns a data-layer result into a JSON response.
+async function respond(load: () => Promise<unknown>) {
+  try { return json(await load()); }
+  catch (error) {
+    if (error instanceof ApiError) return json({ error: error.message }, error.status);
+    throw error;
+  }
 }
 
 async function deleteSession(db: Db, request: Request) {
@@ -120,42 +86,6 @@ function isCrossSiteOrigin(request: Request) {
 
 const SIGN_IN_REQUIRED = "Sign in to continue.";
 const REQUEST_BLOCKED = "Request blocked.";
-
-async function publicProfile(db: Db, rawUsername: unknown) {
-  let username: string;
-  try { username = validateUsername(rawUsername); }
-  catch (error) { return json({ error: error instanceof Error ? error.message : "Enter a valid username." }, 400); }
-  const { data: player, error: playerError } = await db.from("players")
-    .select("id,name,username,elo,tier,games_total,profile_image_path,background_image_path")
-    .eq("username", username)
-    .maybeSingle();
-  if (playerError) return json({ error: "Could not load this profile." }, 500);
-  if (!player) return json({ error: "Profile not found." }, 404);
-
-  const { data: appearances, error: appearancesError } = await db.from("game_players")
-    .select("game_id,games!inner(id,status)")
-    .eq("player_id", player.id)
-    .eq("games.status", "finished");
-  if (appearancesError) return json({ error: "Could not load this profile." }, 500);
-
-  const gameIds = [...new Set((appearances || []).map((row: { game_id: number }) => row.game_id))];
-  let history: ReturnType<typeof profileResponse>["history"] = [];
-  if (gameIds.length) {
-    const { data: games, error: gamesError } = await db.from("games")
-      .select("id,ended_at,winner,status,game_players(team,players(name,username,tier,profile_image_path))")
-      .in("id", gameIds)
-      .eq("status", "finished")
-      .order("ended_at", { ascending: false });
-    if (gamesError) return json({ error: "Could not load this profile." }, 500);
-    history = (games || []).map((game: any) => {
-      const players = game.game_players || [];
-      const side = (team: string) => players.filter((row: any) => row.team === team)
-        .map((row: any) => ({ name: row.players?.name || "Player", username: row.players?.username || "", tier: row.players?.tier || "", profile_image_path: row.players?.profile_image_path || "" }));
-      return { ended_at: game.ended_at, winner: game.winner, team_a: side("A"), team_b: side("B") };
-    });
-  }
-  return json(profileResponse(player, history));
-}
 
 async function updateUsername(db: Db, request: Request, body: Record<string, unknown>) {
   if (isCrossSiteOrigin(request)) return json({ error: REQUEST_BLOCKED }, 403);
@@ -250,7 +180,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Invalid request." }, 400);
-    if (body.action === "profile") return await publicProfile(db, body.username);
+    if (body.action === "profile") return await respond(() => loadProfile(db, body.username));
     if (body.action === "update") return await updateUsername(db, request, body);
     if (body.action === "update-name") return await updateName(db, request, body);
     if (body.action === "session") {
@@ -258,11 +188,17 @@ export async function POST(request: Request) {
       if (!session) return json({ error: SIGN_IN_REQUIRED }, 401);
       return json({ ok: true, username: session.username });
     }
-    if (body.action === "viewer" || body.action === "games" || body.action === "ranking") {
+    if (["viewer", "games", "ranking", "club"].includes(body.action)) {
       const viewer = await requireViewer(db, request);
       if (!viewer) return json({ error: SIGN_IN_REQUIRED }, 401);
       if (body.action === "viewer") return json({ ok: true, ...viewer });
-      return body.action === "games" ? await clubGames(db) : await clubRanking(db);
+      if (body.action === "games") return await respond(() => loadGames(db));
+      if (body.action === "ranking") return await respond(() => loadRanking(db));
+      // One round trip for a whole club page: viewer, games and ranking.
+      return await respond(async () => {
+        const [{ games }, { ranking }] = await Promise.all([loadGames(db), loadRanking(db)]);
+        return { viewer: { ok: true, ...viewer }, games, ranking };
+      });
     }
     if (body.action === "logout") {
       await deleteSession(db, request);

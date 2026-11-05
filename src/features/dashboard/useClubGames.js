@@ -1,46 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseClient, hasSupabaseConfig } from "@/lib/supabase/client";
-import { postPlayerJson } from "../player-profile/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { hasSupabaseConfig } from "@/lib/supabase/client";
+import { clubQuery, keys, signOutEverywhere, SIGN_IN_REQUIRED } from "../queries";
 
-async function organiserHeaders() {
-  const { data } = (await getSupabaseClient()?.auth.getSession()) || {};
-  const token = data?.session?.access_token;
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-// Loads the signed-in viewer (player or organiser) and the club's finished games. Signed-out visitors go to "/".
+// The signed-in viewer (player or organiser), the club's finished games and the ranking.
+// Signed-in players get this from the server render. Signed-out visitors go to "/".
 export function useClubGames() {
   const router = useRouter();
-  const [state, setState] = useState({ loading: true, viewer: null, games: [], ranking: [], error: "" });
+  const queryClient = useQueryClient();
+  const { data, error, isPending } = useQuery({ ...clubQuery, enabled: hasSupabaseConfig });
+  const signedOut = error?.message === SIGN_IN_REQUIRED;
 
-  useEffect(() => {
-    const controller = new AbortController();
-    if (!hasSupabaseConfig) { setState({ loading: false, viewer: null, games: [], ranking: [], error: "" }); return; }
-    (async () => {
-      try {
-        const headers = await organiserHeaders();
-        const viewer = await postPlayerJson("viewer", {}, controller.signal, headers);
-        const [{ games }, { ranking }] = await Promise.all([
-          postPlayerJson("games", {}, controller.signal, headers),
-          postPlayerJson("ranking", {}, controller.signal, headers),
-        ]);
-        if (!controller.signal.aborted) setState({ loading: false, viewer, games, ranking, error: "" });
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        if (error.message === "Sign in to continue.") router.replace("/");
-        else setState({ loading: false, viewer: null, games: [], error: error.message });
-      }
-    })();
-    return () => controller.abort();
-  }, [router]);
+  useEffect(() => { if (signedOut) router.replace("/"); }, [signedOut, router]);
+  useEffect(() => { if (data?.viewer) queryClient.setQueryData(keys.viewer, data.viewer); }, [data, queryClient]);
 
   async function signOut() {
-    await Promise.allSettled([postPlayerJson("logout", {}), getSupabaseClient()?.auth.signOut()]);
+    // Wait for the server to clear the cookie, or "/" would send the player back to the dashboard.
+    await signOutEverywhere(queryClient);
     router.replace("/");
   }
 
-  return { ...state, signOut };
+  return {
+    loading: isPending || signedOut,
+    viewer: data?.viewer ?? null,
+    games: data?.games ?? [],
+    ranking: data?.ranking ?? [],
+    error: error && !signedOut ? error.message : "",
+    signOut,
+  };
 }

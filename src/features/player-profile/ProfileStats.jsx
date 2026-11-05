@@ -1,3 +1,4 @@
+import LocalDate from "@/components/LocalDate";
 import { useMemo } from "react";
 import { computeDashboard } from "./dashboard.mjs";
 import { profileHref } from "../court-balancer/helpers";
@@ -32,7 +33,7 @@ export default function ProfileStats({ profile }) {
     <div className="ds-tile-grid">
       <Tile tone="mint" label="Elo" value={profile.elo} note={<RankIcon tier={profile.tier} className="ds-sub-icon" />} />
       <Tile tone="lime" label="Win rate" value={`${stats.winRate}%`} note={`${stats.wins} wins · ${stats.losses} losses`} />
-      <Tile tone="sky" label="Games" value={profile.games_total ?? stats.played} note={stats.lastPlayed ? `Last on ${new Date(stats.lastPlayed).toLocaleDateString([], { dateStyle: "medium" })}` : undefined} />
+      <Tile tone="sky" label="Games" value={profile.games_total ?? stats.played} note={stats.lastPlayed ? <>Last on <LocalDate value={stats.lastPlayed} options={{ dateStyle: "medium" }} /></> : undefined} />
       <Tile tone="sand" label="Win streak" value={stats.streak} note={`Best ${stats.bestStreak}`} />
       <Tile label="Recent form" className="span2" note="Newest first">
         <div className="ds-form" role="list" aria-label="Last results">{stats.form.map((won, index) =>

@@ -1,13 +1,8 @@
 import { RankIcon } from "../../components/PlayerAvatar";
+import { RANK_NAMES } from "../../lib/rank-names";
 
 // Tiers from lowest to highest, shown left to right.
-const RANKS = [
-  { tier: "D", name: "Ếch vồ hoa mướp" },
-  { tier: "C", name: "Lính mới ôm sào" },
-  { tier: "B", name: "Bác tiều đốn củi" },
-  { tier: "A", name: "Ngư ông thả lưới" },
-  { tier: "S", name: "Trạng nguyên múa vợt" },
-];
+const RANKS = ["D", "C", "B", "A", "S"].map((tier) => ({ tier, name: RANK_NAMES[tier] }));
 
 export default function RankLadder() {
   return <section className="ds-ladder" aria-labelledby="ladder-title">

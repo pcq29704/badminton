@@ -21,7 +21,7 @@ export default function PlayerRanking({ ranking, viewer }) {
             <div className="ds-rank-player">
               <PlayerAvatar className="ds-rank-avatar" path={player.profile_image_path} tier={player.tier} />
               {player.username
-                ? <a href={`/profile.html?u=${encodeURIComponent(player.username)}`} className="ds-rank-name ds-rank-link">{name}</a>
+                ? <a href={`/profile?u=${encodeURIComponent(player.username)}`} className="ds-rank-name ds-rank-link">{name}</a>
                 : <span className="ds-rank-name">{name}</span>}
             </div>
           </td>

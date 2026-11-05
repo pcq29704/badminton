@@ -6,6 +6,7 @@ import ConfigurationMessage from "@/components/ConfigurationMessage";
 import MatchCard, { playerKey } from "@/components/MatchCard";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import Shell from "@/components/Shell";
+import { useIsClient } from "@/lib/useIsClient";
 import { hasSupabaseConfig } from "@/lib/supabase/client";
 import { useClubGames } from "./useClubGames";
 import { groupGamesByDay, isDayKey } from "./days.mjs";
@@ -40,11 +41,13 @@ export default function DayPage() {
   const day = useMemo(() => isDayKey(date) ? groupGamesByDay(games).find((entry) => entry.key === date) : null, [games, date]);
   const standings = useMemo(() => day ? dayStandings(day.games) : [], [day]);
   const profiles = useMemo(() => new Map((ranking || []).map((player) => [playerKey(player), player])), [ranking]);
+  // Days are grouped in the viewer's time zone, so the list draws in the browser (the data is already here).
+  const isClient = useIsClient();
   const shell = { current: "dashboard", viewer, onSignOut: signOut };
 
   if (!hasSupabaseConfig) return <Shell {...shell}><ConfigurationMessage /></Shell>;
   if (error) return <Shell {...shell}>{back}<p className="ds-alert error" role="alert">{error}</p></Shell>;
-  if (loading) return <Shell {...shell}><p className="ds-empty">Loading matches…</p></Shell>;
+  if (loading || !isClient) return <Shell {...shell}><p className="ds-empty">Loading matches…</p></Shell>;
   if (!day) return <Shell {...shell}>{back}<p className="ds-empty">No games found for this day.</p></Shell>;
 
   const withProfile = (player) => ({ ...profiles.get(playerKey(player)), ...player });
