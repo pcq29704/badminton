@@ -1,6 +1,4 @@
-/* Emerald Crown Ranked: the new design system (see DESIGN.md).
-   Classes use the cb- prefix and tokens the --cb- prefix, so this file can live next to the old
-   design.css (ds-) while screens move over one at a time.
+/* Emerald Crown Ranked: the design system (see DESIGN.md). Classes use the cb- prefix and tokens the --cb- prefix.
    Breakpoints (max-width) are the shared ones: 960, 720, 480, 360. */
 
 /* ---------- tokens ---------- */
@@ -44,7 +42,26 @@
 [data-tier="D"] { --cb-t-hi: #dcb391; --cb-t-main: #9a6a48; --cb-t-deep: #281a10; --cb-t-gem: #cfa275; }
 
 /* ---------- page ---------- */
-.ds-root:has(.cb-page) { background: var(--cb-ground); }
+body:has(.cb-root) { margin: 0; padding: 0; background: var(--cb-ground); font-family: var(--cb-body); }
+.cb-root { --cb-nav-h: 64px; min-height: 100vh; min-height: 100dvh; background: var(--cb-ground); color: var(--cb-ink); color-scheme: dark; }
+.cb-root *, .cb-root *::before, .cb-root *::after { box-sizing: border-box; }
+.cb-root img, .cb-root svg { max-width: 100%; }
+/* shuttlecock cursor made from the app icon; hotspot is the cork tip */
+:root {
+  --cursor-shuttle: image-set(url("/assets/cursor/shuttle-cursor.png") 1x, url("/assets/cursor/shuttle-cursor@2x.png") 2x) 2 2, auto;
+  --cursor-hit: image-set(url("/assets/cursor/shuttle-cursor-hover.png") 1x, url("/assets/cursor/shuttle-cursor-hover@2x.png") 2x) 2 2, pointer;
+}
+html { cursor: var(--cursor-shuttle); }
+a[href], button, select, summary, label[for], [role="button"], [role="link"], [role="tab"] { cursor: var(--cursor-hit); }
+input:not([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea { cursor: text; }
+:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+
+/* player avatar: photo inside the tier frame (the frame art has a round opening) and the rank badge */
+.cb-pavatar { position: relative; display: inline-block; width: var(--pa-size, 56px); height: var(--pa-size, 56px); }
+.cb-pavatar-photo { position: absolute; inset: 21%; width: 58%; height: 58%; border-radius: 9999px; object-fit: cover; background: var(--cb-raised); display: grid; place-items: center; font-size: calc(var(--pa-size, 56px) * 0.28); }
+.cb-pavatar-frame { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.cb-rank-icon { display: inline-grid; justify-items: center; gap: 2px; vertical-align: middle; }
+.cb-rank-icon img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; }
 .cb-page {
   position: relative; display: flex; flex-direction: column; gap: 24px;
   max-width: 1040px; margin: 0 auto;
@@ -136,7 +153,6 @@
 .cb-form { display: flex; flex-direction: column; gap: 22px; max-width: 520px; margin: 0 auto; padding-bottom: 8px; }
 .cb-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .cb-field-row { display: flex; gap: 10px; }
-/* input.cb-input beats the old global input[type=text] rule in globals.css */
 input.cb-input {
   flex: 1; min-width: 0; width: 100%; height: 46px; padding: 0 14px; border: 1px solid rgb(226 189 98 / .25); border-radius: 2px;
   background: var(--cb-input-well); color: var(--cb-ink); font: 500 16px var(--cb-body);
@@ -161,8 +177,8 @@ input.cb-input:disabled { opacity: .6; }
 
 /* ---------- framed avatar fallback (PlayerAvatar) ---------- */
 /* No photo: the player's initials on a tier-coloured disc, never an emoji. */
-.ds-pavatar[data-tier] .ds-pavatar-initials,
-.ds-pavatar .ds-pavatar-initials {
+.cb-pavatar[data-tier] .cb-pavatar-initials,
+.cb-pavatar .cb-pavatar-initials {
   background: radial-gradient(circle at 35% 30%, var(--cb-t-main), var(--cb-t-deep));
   color: #fff; font-family: var(--cb-display); font-weight: 700; font-size: calc(var(--pa-size, 56px) * .2); letter-spacing: .02em;
   text-shadow: 0 1px 2px rgb(0 0 0 / .6);
@@ -265,7 +281,7 @@ a.cb-match-player:hover span { text-decoration: underline; text-underline-offset
 .cb-card.cb-rung { display: grid; justify-items: center; align-content: start; gap: 6px; height: 100%; padding: 22px 12px 20px; text-align: center; }
 .cb-rung-art { position: relative; display: grid; place-items: center; width: clamp(72px, 11vw, 120px); aspect-ratio: 1; }
 .cb-rung-art::before { content: ""; position: absolute; inset: 6%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--cb-t-main) 55%, transparent), transparent 70%); filter: blur(14px); animation: cb-halo-in 1.6s var(--cb-ease) both; animation-delay: calc(var(--cb-step, 0) * 120ms); }
-.cb-rung-art .ds-rank-icon { position: relative; width: 100%; animation: cb-crest-in 1.1s var(--cb-ease) both; animation-delay: calc(var(--cb-step, 0) * 120ms); }
+.cb-rung-art .cb-rank-icon { position: relative; width: 100%; animation: cb-crest-in 1.1s var(--cb-ease) both; animation-delay: calc(var(--cb-step, 0) * 120ms); }
 .cb-rung-name { font-family: var(--cb-display); font-size: 21px; font-weight: 700; line-height: 1.15; color: var(--cb-t-hi); text-wrap: balance; }
 
 .cb-days { margin: 0; padding: 0; list-style: none; }
@@ -319,8 +335,7 @@ a.cb-match-player:hover span { text-decoration: underline; text-underline-offset
 .cb-match.neutral .cb-match-vs { align-self: center; }
 
 /* ---------- top nav (TopNav, every page) ---------- */
-.ds-root { --ds-nav-h: 64px; }
-.cb-nav { position: sticky; top: 0; z-index: 10; height: var(--ds-nav-h, 64px); padding: 0 max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left)); background: #04110c; font-family: var(--cb-body); }
+.cb-nav { position: sticky; top: 0; z-index: 10; height: var(--cb-nav-h, 64px); padding: 0 max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left)); background: #04110c; font-family: var(--cb-body); }
 .cb-nav::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--cb-gold) 50%, transparent); opacity: .55; }
 .cb-nav-inner { display: flex; align-items: center; gap: 4px; max-width: 1120px; height: 100%; margin: 0 auto; }
 .cb-brand { display: flex; align-items: center; gap: 10px; margin-right: auto; color: var(--cb-ink); font-family: var(--cb-display); font-size: 22px; font-weight: 700; letter-spacing: .02em; text-decoration: none; white-space: nowrap; }
@@ -554,7 +569,7 @@ select.cb-input:focus { outline: 0; border-color: var(--cb-gold); box-shadow: 0 
   .cb-results { gap: 5px; }
   .cb-bars { gap: 6px; height: 112px; }
   .cb-bar-labels { gap: 6px; font-size: 11px; }
-  .ds-root { --ds-nav-h: 56px; }
+  .cb-root { --cb-nav-h: 56px; }
   .cb-nav { padding-inline: 12px; }
   .cb-navlink { padding: 0 9px; font-size: 12px; letter-spacing: .06em; }
 }

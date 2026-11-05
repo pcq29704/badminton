@@ -239,8 +239,9 @@ No drop shadows on cards or buttons. Depth comes from the double gold line, the 
 
 ## Migration status
 
-The redesign runs screen by screen. The plan and checklist live in `spec/plan/2026-11-05-emerald-crown-redesign.md`.
+The redesign is finished: every screen uses the new system. The plan and checklist live in `spec/plan/2026-11-05-emerald-crown-redesign.md`.
 
 - New system: `src/app/ui.css` (`cb-` classes and `--cb-` tokens) and `src/components/ui/`.
-- Old system, still used by screens not yet moved: `src/app/design.css` (`ds-` classes) and `src/app/globals.css` (organiser).
+- The old system (`design.css`, `globals.css`, `ds-` classes, Marcellus SC) is deleted. The page wrapper is `cb-root`.
+- Known gap: the organiser status flags (⚡ ☕ 💃 🚪) and streak icons are still emoji, because the in-app help text explains them. Replace them with drawn icons and update `help.js` together.
 - References: v1 profile prototype https://claude.ai/artifact/3ZcNJNkqbV5UgRu4f4UJCT and card options https://claude.ai/artifact/Qo2CDrqv5Y1YXHuHw5AVoK (option B) (both private).

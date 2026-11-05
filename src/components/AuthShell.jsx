@@ -19,7 +19,7 @@ export function TopNav({ current, viewer, onSignOut }) {
 }
 
 export default function AuthShell({ current, title, lead, cardTitle, children }) {
-  return <div className="ds-root">
+  return <div className="cb-root">
     <TopNav current={current} />
     <main className="cb-page cb-auth">
       <header className="cb-auth-head">

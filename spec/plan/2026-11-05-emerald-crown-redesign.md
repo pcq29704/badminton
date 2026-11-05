@@ -173,7 +173,7 @@
 - [x] Move the organiser off `globals.css`. The organiser no longer uses any `ds-` or old global class (only `ds-root`, the page wrapper). All `ds-org-*` and `.ds-dp-tag` rules are deleted from `design.css`. Not checked with a real organiser login or real data; the toast, help panel, manage-players list, match log and the not-organiser / error screens were not seen rendered.
 
 ## Phase 7: Remove the old system
-- [ ] Delete `design.css` and `globals.css` once no `ds-` class or old global class is used.
-- [ ] Remove Marcellus SC from `layout.tsx`.
-- [ ] Move `portal-responsive.test.mjs` checks to `ui.css`.
-- [ ] Update the `DESIGN.md` migration status.
+- [x] Delete `design.css` and `globals.css`. Moved what was still needed into `ui.css`: the page wrapper (`ds-root` is now `cb-root`), avatar and rank-icon rules (`cb-pavatar*`, `cb-rank-icon`), the shuttle cursor, and the body base. `ConfigurationMessage` now uses `Card`; `Shell` defaults to `cb-page`. Backups are in the session scratchpad, outside the repo.
+- [x] Remove Marcellus SC from `layout.tsx`.
+- [x] Move `portal-responsive.test.mjs` checks to `ui.css`.
+- [x] Update the `DESIGN.md` migration status. Checked 2026-11-06: dashboard, day page, ranking, profile at 1024px; player sign-in, organiser sign-in at 375px (no overflow, fonts and cursor load). Not checked: signed-in organiser screens, the not-configured message.

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const css = readFileSync(new URL('../src/app/design.css', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../src/app/ui.css', import.meta.url), 'utf8');
 const layout = readFileSync(new URL('../src/app/layout.tsx', import.meta.url), 'utf8');
 
 test('portal styles use only the three shared max-width breakpoints', () => {

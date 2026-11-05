@@ -17,18 +17,18 @@ export function initials(name) {
 // Without a photo the disc shows the player's initials in the tier colour (`name` gives the initials).
 export default function PlayerAvatar({ path, tier, name = "", className = "", alt = "" }) {
   const key = tierKey(tier);
-  return <span className={`ds-pavatar ${className}`.trim()} data-tier={key ? key.toUpperCase() : undefined}>
+  return <span className={`cb-pavatar ${className}`.trim()} data-tier={key ? key.toUpperCase() : undefined}>
     {path
-      ? <img className="ds-pavatar-photo" src={profileImageUrl(path)} alt={alt} loading="lazy" />
-      : <span className="ds-pavatar-photo ds-pavatar-initials" aria-hidden="true">{initials(name)}</span>}
-    {key && <img className="ds-pavatar-frame" src={`/assets/profile-frames/frame-${key}.png`} alt="" aria-hidden="true" />}
+      ? <img className="cb-pavatar-photo" src={profileImageUrl(path)} alt={alt} loading="lazy" />
+      : <span className="cb-pavatar-photo cb-pavatar-initials" aria-hidden="true">{initials(name)}</span>}
+    {key && <img className="cb-pavatar-frame" src={`/assets/profile-frames/frame-${key}.png`} alt="" aria-hidden="true" />}
   </span>;
 }
 
 export function RankIcon({ tier, className = "" }) {
   const key = tierKey(tier);
   if (!key) return <span className={className}>{tier}</span>;
-  return <span className={`ds-rank-icon ${className}`.trim()}>
+  return <span className={`cb-rank-icon ${className}`.trim()}>
     <img src={`/assets/rank-badges/rank-${key}.png`} alt={`Tier ${key.toUpperCase()}`} />
   </span>;
 }
