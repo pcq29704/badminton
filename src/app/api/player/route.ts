@@ -84,7 +84,7 @@ const GAMES_LIMIT = 1000;
 
 async function clubGames(db: Db) {
   const { data, error } = await db.from("games")
-    .select("id,ended_at,winner,ranked,courts(court_no),game_players(team,players(name,username))")
+    .select("id,ended_at,winner,score_a,score_b,ranked,courts(court_no),game_players(team,players(name,username))")
     .eq("status", "finished")
     .not("ended_at", "is", null)
     .order("ended_at", { ascending: false })
@@ -142,7 +142,7 @@ async function publicProfile(db: Db, rawUsername: unknown) {
   let history: ReturnType<typeof profileResponse>["history"] = [];
   if (gameIds.length) {
     const { data: games, error: gamesError } = await db.from("games")
-      .select("id,ended_at,winner,status,game_players(team,players(name,username,tier,profile_image_path))")
+      .select("id,ended_at,winner,score_a,score_b,status,game_players(team,players(name,username,tier,profile_image_path))")
       .in("id", gameIds)
       .eq("status", "finished")
       .order("ended_at", { ascending: false });
@@ -151,7 +151,7 @@ async function publicProfile(db: Db, rawUsername: unknown) {
       const players = game.game_players || [];
       const side = (team: string) => players.filter((row: any) => row.team === team)
         .map((row: any) => ({ name: row.players?.name || "Player", username: row.players?.username || "", tier: row.players?.tier || "", profile_image_path: row.players?.profile_image_path || "" }));
-      return { ended_at: game.ended_at, winner: game.winner, team_a: side("A"), team_b: side("B") };
+      return { ended_at: game.ended_at, winner: game.winner, score_a: game.score_a ?? null, score_b: game.score_b ?? null, team_a: side("A"), team_b: side("B") };
     });
   }
   return json(profileResponse(player, history));

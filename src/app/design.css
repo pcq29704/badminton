@@ -371,6 +371,7 @@ body:has(.ds-root) .toast-x, body:has(.ds-root) .toast .mini-btn { color: #fff; 
 .ds-dp-num { color: var(--ds-placeholder); font-variant-numeric: tabular-nums; }
 .ds-dp-court { padding: 2px 8px; background: var(--ds-surface-2); color: var(--ds-ink); }
 .ds-dp-tag { padding: 2px 8px; box-shadow: inset 0 0 0 1px var(--ds-hairline); }
+.ds-dp-label { margin-left: auto; }
 .ds-dp-teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 8px; padding: 10px 12px 12px; }
 .ds-dp-side { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
 .ds-dp-side:last-child { flex-direction: row-reverse; text-align: right; }
@@ -598,7 +599,7 @@ body:has(.ds-root) .toast { bottom: max(18px, env(safe-area-inset-bottom)); }
   .ds-dp-bar .ds-h2 { flex-basis: 100%; }
   /* match card: stack the two teams so each name gets the full width */
   .ds-dp-teams { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .ds-dp-vs { padding: 2px 0; text-align: center; line-height: 14px; }
+  .ds-dp-vs, .ds-dp-score { padding: 2px 0; text-align: center; line-height: 14px; }
   .ds-dp-side:last-child { flex-direction: row; text-align: left; }
   .ds-dp-side:last-child .ds-dp-player { flex-direction: row; }
   .ds-dp-side.won:last-child { background: linear-gradient(90deg, rgb(226 189 98 / .18), rgb(226 189 98 / .06) 55%, transparent); box-shadow: inset 3px 0 0 var(--ds-primary); }
@@ -703,9 +704,23 @@ body:has(.ds-root) .toast { bottom: max(18px, env(safe-area-inset-bottom)); }
 }
 .ds-org-team.right .ds-org-player { flex-direction: row-reverse; text-align: right; }
 .ds-org-vs { align-self: center; color: var(--ds-placeholder); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
-.ds-org-win-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
-.ds-root .ds-btn.ds-org-win { height: 52px; font-size: 16px; }
-.ds-root .ds-org-win-hint { margin-top: 8px; color: var(--ds-placeholder); font-size: 11px; text-align: center; }
+.ds-root .ds-btn.ds-org-win { height: 52px; margin-top: 4px; font-size: 16px; }
+/* score boxes under each team; the side ahead turns green so swapped scores stand out */
+.ds-org-score-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin-top: 20px; }
+.ds-root .ds-input.ds-org-score { height: 52px; border-color: var(--ds-hairline); font-size: 26px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.ds-root .ds-input.ds-org-score.leading { border-color: var(--ds-accent); background: var(--ds-tint-mint); color: var(--ds-accent); }
+.ds-org-score-dash { color: var(--ds-placeholder); font-size: 20px; }
+.ds-root .ds-org-score-msg { min-height: 16px; margin: 8px 0; color: var(--ds-placeholder); font-size: 12px; line-height: 16px; text-align: center; }
+.ds-root .ds-org-score-msg.bad { color: var(--ds-red); }
+.ds-org-team.leading .ds-org-name { color: var(--ds-accent); }
+/* confirmation sheet */
+.ds-org-sheet-backdrop { position: fixed; inset: 0; z-index: 19; display: flex; align-items: flex-end; justify-content: center; padding: 16px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: rgb(0 0 0 / .6); }
+.ds-org-sheet { width: min(520px, 100%); padding: 20px; background: var(--ds-g-surface); box-shadow: inset 0 0 0 1px var(--ds-accent), 0 18px 40px -12px rgb(0 0 0 / .8); }
+.ds-org-sheet-result { margin-top: 12px; font-size: 16px; line-height: 1.5; }
+.ds-org-sheet-result p { margin: 0; }
+.ds-root .ds-org-sheet-sub { margin-top: 4px; color: var(--ds-muted); font-size: 14px; }
+.ds-org-sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+.ds-org-log-score, .ds-dp-score { align-self: center; color: var(--ds-ink); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ds-org-idle { display: grid; justify-items: center; gap: 8px; padding: 8px 0 4px; color: var(--ds-muted); text-align: center; }
 .ds-org-idle-icon { font-size: 34px; line-height: 1; }
 .ds-org-countdown { font-size: 26px; font-weight: 700; color: var(--ds-primary); font-variant-numeric: tabular-nums; }

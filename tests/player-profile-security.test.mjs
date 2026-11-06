@@ -17,7 +17,7 @@ test('password claim compares exact text and is only executable by the Edge Func
 test('public history query includes only finished games and explicit player fields', () => {
   assert.match(edge, /select\(["']id,name,username,elo,tier,games_total,profile_image_path,background_image_path["']\)/);
   assert.match(edge, /\.eq\(["']games\.status["'], ["']finished["']\)/);
-  assert.match(edge, /select\(["']id,ended_at,winner,status,game_players\(team,players\(name,username,tier,profile_image_path\)\)["']\)/);
+  assert.match(edge, /select\(["']id,ended_at,winner,score_a,score_b,status,game_players\(team,players\(name,username,tier,profile_image_path\)\)["']\)/);
   assert.match(edge, /profileResponse\(player, history\)/);
   const readStart = edge.indexOf('async function publicProfile');
   const readEnd = edge.indexOf('\n}\n\nasync function updateUsername', readStart);

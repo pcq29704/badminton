@@ -49,6 +49,8 @@ export function profileResponse(player, history) {
     history: history.map((game) => ({
       ended_at: game.ended_at,
       winner: game.winner,
+      score_a: game.score_a ?? null,
+      score_b: game.score_b ?? null,
       team_a: game.team_a.map(({ name, username, tier, profile_image_path }) => ({ name, username, tier, profile_image_path })),
       team_b: game.team_b.map(({ name, username, tier, profile_image_path }) => ({ name, username, tier, profile_image_path })),
     })),
@@ -65,6 +67,8 @@ export function gamesResponse(rows) {
       id: game.id,
       ended_at: game.ended_at,
       winner: game.winner,
+      score_a: game.score_a ?? null,
+      score_b: game.score_b ?? null,
       ranked: Boolean(game.ranked),
       court_no: court?.court_no ?? null,
       team_a: side('A'),

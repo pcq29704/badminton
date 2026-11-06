@@ -21,13 +21,20 @@ test('validates the day key used in the URL', () => {
 
 test('gamesResponse exposes only names, usernames, court and result', () => {
   const [game] = gamesResponse([{
-    id: 7, ended_at: '2026-10-20T10:00:00Z', winner: 'B', ranked: true, status: 'finished', session_id: 3,
+    id: 7, ended_at: '2026-10-20T10:00:00Z', winner: 'B', score_a: 15, score_b: 21, mov_multiplier: 1.107, ranked: true, status: 'finished', session_id: 3,
     courts: { court_no: 2 },
     game_players: [
       { team: 'A', elo_before: 1200, players: { name: 'Ann', username: 'ann', password: 'x' } },
       { team: 'B', players: { name: 'Bob', username: null } },
     ],
   }, { id: 8, ended_at: null }]);
-  assert.deepEqual(game, { id: 7, ended_at: '2026-10-20T10:00:00Z', winner: 'B', ranked: true, court_no: 2,
+  assert.deepEqual(game, { id: 7, ended_at: '2026-10-20T10:00:00Z', winner: 'B', score_a: 15, score_b: 21, ranked: true, court_no: 2,
     team_a: [{ name: 'Ann', username: 'ann' }], team_b: [{ name: 'Bob', username: '' }] });
+});
+
+test('old games without a score keep their winner and report no score', () => {
+  const [game] = gamesResponse([{ id: 9, ended_at: '2026-10-01T10:00:00Z', winner: 'A', ranked: true, game_players: [] }]);
+  assert.equal(game.winner, 'A');
+  assert.equal(game.score_a, null);
+  assert.equal(game.score_b, null);
 });

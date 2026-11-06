@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { logFlags } from "../history";
+import { formatScore, resultLabel } from "../scoring.mjs";
 import { Delta, PlayerTag, playerInfo } from "./Shared";
 
 export default function GameLog({ state, actions }) {
@@ -19,13 +20,15 @@ export default function GameLog({ state, actions }) {
       if (!labels.length) labels.push(["good", "balanced · all fresh"]);
       return <div className="ds-org-log" key={entry.gameId}>
         <div className="ds-org-log-head">
-          <span>#{index + 1} · Court {entry.courtNo} · {entry.ranked ? "Ranked" : "Unranked"} · {new Date(entry.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-          <button className="ds-btn tertiary ds-org-mini" onClick={() => actions.correctResult(entry.gameId)}>⇄ Flip result</button>
+          <span>#{index + 1} · Court {entry.courtNo} · {entry.ranked ? "Ranked" : "Unranked"} · {new Date(entry.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}{entry.scoreA != null && <> · {resultLabel(entry.scoreA, entry.scoreB)}</>}</span>
+          <button className="ds-btn tertiary ds-org-mini" onClick={() => actions.correctResult(entry.gameId)}>✎ Edit score</button>
         </div>
-        <div className="ds-org-log-teams">{side(entry.teamA, entry.winner === "A", entry.ranked, false)}<span className="ds-org-vs">vs</span>{side(entry.teamB, entry.winner === "B", entry.ranked, true)}</div>
+        <div className="ds-org-log-teams">{side(entry.teamA, entry.winner === "A", entry.ranked, false)}{entry.scoreA != null
+          ? <span className="ds-org-log-score">{formatScore(entry.scoreA, entry.scoreB)}</span>
+          : <span className="ds-org-vs">vs</span>}{side(entry.teamB, entry.winner === "B", entry.ranked, true)}</div>
         <div className="ds-org-log-meta">{labels.map(([tone, label], i) => <Fragment key={label}>{i > 0 && " · "}<span className={`ds-org-status ${tone}`}>{label}</span></Fragment>)}</div>
       </div>;
     })}
-    <p className="ds-hint">“Elo gap” = difference in combined team ratings before the game. Repeat flags mean nothing fresher was available. Unranked results can be flipped later; ranked results can be flipped until a player finishes another ranked game.</p>
+    <p className="ds-hint">“Elo gap” = difference in combined team ratings before the game. Repeat flags mean nothing fresher was available. Unranked scores can be edited later; ranked scores can be edited until a player finishes another ranked game.</p>
   </section>;
 }

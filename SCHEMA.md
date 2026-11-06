@@ -33,6 +33,10 @@ erDiagram
         int provisional_games
         int hold_minutes
         int balance_deadzone
+        int target_points "game ends at 21"
+        int cap_points "deuce cap 30"
+        numeric mov_min "Elo multiplier, 1-point win"
+        numeric mov_max "Elo multiplier, biggest win"
     }
 
     TIERS {
@@ -92,6 +96,9 @@ erDiagram
         boolean ranked
         text status
         char winner "nullable"
+        smallint score_a "nullable; old games have none"
+        smallint score_b "nullable"
+        numeric mov_multiplier "nullable; M used for Elo"
         timestamptz started_at
         timestamptz ended_at "nullable"
     }
@@ -122,5 +129,6 @@ erDiagram
 - A partial unique index allows only one active session, and another allows only one `playing` game per court.
 - `courts` has a unique `(session_id, court_no)` pair.
 - `games.ranked` defaults to `false`; `sessions.rank_new_games` defaults to `true` (the toggle is hidden in the UI) and controls the setting copied to new games.
+- `games.score_a` / `score_b` are both set or both null. When set, they must follow the scoring rule (`private.score_problem`, using `settings.target_points` and `cap_points`) and agree with `winner`; a trigger on `games` enforces the rule for every write.
 - `players.username` and both image paths come from the player profile migration. Profile images use the public `player-profile-images` bucket.
 - The local SQL schema defines functions and RLS policies in addition to these tables; they are omitted from this entity relationship diagram.
