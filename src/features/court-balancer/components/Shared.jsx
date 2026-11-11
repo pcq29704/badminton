@@ -32,6 +32,10 @@ export function StreakBadge({ count }) {
   return count >= STREAK_MIN ? <span className="cb-org-streak-badge" title={`${count} wins in a row`}>{streakIcon(count)}{count}</span> : null;
 }
 
+export function RunBadge({ count }) {
+  return count ? <span title={`${count} games in a row`}>💃{count}</span> : null;
+}
+
 export function Delta({ value }) {
   return <span className={`cb-org-delta ${value >= 0 ? "up" : "down"}`}>{signed(value)}</span>;
 }

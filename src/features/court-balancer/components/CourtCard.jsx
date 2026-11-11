@@ -1,9 +1,9 @@
 import { Card } from "@/components/ui";
 import { fmtLeft } from "../helpers";
-import { PlayerTag, StreakBadge, playerInfo } from "./Shared";
+import { PlayerTag, RunBadge, StreakBadge, playerInfo } from "./Shared";
 import { ScoreInputs, readScore } from "./ScoreEntry";
 
-export default function CourtCard({ court, state, actions, tired, streaks }) {
+export default function CourtCard({ court, state, actions, runs, streaks }) {
   const game = court.game;
   if (!game) return <Card className="cb-court idle">
     <div className="cb-org-court-head">
@@ -30,7 +30,7 @@ export default function CourtCard({ court, state, actions, tired, streaks }) {
           <StreakBadge count={streaks.get(id) || 0} />
           {player.pendingRemove && <span title="Leaving after this game">🚪</span>}
           {player.status === "keen" && <span title="Wants to play">⚡</span>}
-          {tired.has(id) && <span title="Played 2+ in a row">💃</span>}
+          <RunBadge count={runs.get(id)} />
         </span>
       </PlayerTag>;
     })}</div>;

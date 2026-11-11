@@ -1,6 +1,6 @@
 import { playingIds } from "../matchmaking";
-import { isDebug, winStreaks, streakIcon, STREAK_MIN } from "../helpers";
-import { HelpPanel, PlayerTag, StreakBadge } from "./Shared";
+import { isDebug, playRuns, winStreaks, streakIcon, RUN_MIN, STREAK_MIN } from "../helpers";
+import { HelpPanel, PlayerTag, RunBadge, StreakBadge } from "./Shared";
 import CourtCard from "./CourtCard";
 import ManagePlayers from "./ManagePlayers";
 import StatsPanel from "./StatsPanel";
@@ -22,7 +22,7 @@ function courtCols(n) {
 export default function PlayScreen({ state, actions }) {
   const busy = playingIds(state);
   const waiting = state.players.filter((p) => p.status !== "break" && !busy.has(p.id));
-  const tired = new Set(state.players.filter((p) => p.consec >= 2).map((p) => p.id));
+  const runs = playRuns(state.players, busy);
   const debug = isDebug();
   const streaks = winStreaks(state.log);
   const hot = state.players.map((player) => ({ player, n: streaks.get(player.id) || 0 }))
@@ -44,7 +44,7 @@ export default function PlayScreen({ state, actions }) {
       <div className="cb-org-streak-list">{hot.map(({ player, n }) =>
         <PlayerTag key={player.id} player={player} size="sm"><span className="cb-org-streak-text">{streakIcon(n)} {n} wins in a row</span></PlayerTag>)}</div>
     </section>}
-    <div className="cb-org-courts" style={{ gridTemplateColumns: `repeat(${courtCols(state.courts.length)}, minmax(0, 1fr))` }}>{state.courts.map((court) => <CourtCard key={court.id} court={court} state={state} actions={actions} tired={tired} streaks={streaks} />)}</div>
+    <div className="cb-org-courts" style={{ gridTemplateColumns: `repeat(${courtCols(state.courts.length)}, minmax(0, 1fr))` }}>{state.courts.map((court) => <CourtCard key={court.id} court={court} state={state} actions={actions} runs={runs} streaks={streaks} />)}</div>
     {waiting.length > 0 && <section className="cb-org-group cb-org-waiting"><h2 className="cb-org-label">Waiting to play</h2><div className="cb-org-player-list">{waiting.map((player) =>
       <PlayerTag key={player.id} player={player}><StreakBadge count={streaks.get(player.id) || 0} />{player.status === "keen" && <span title="Wants to play">⚡</span>}</PlayerTag>)}</div></section>}
     {state.showManage && <ManagePlayers state={state} actions={actions} />}
@@ -52,10 +52,10 @@ export default function PlayScreen({ state, actions }) {
       {state.players.map((player) => <button key={player.id} className={`cb-org-pchip${player.status === "break" ? " break" : player.status === "keen" ? " keen" : ""}`} onClick={() => actions.cycleStatus(player.id)}>
         <PlayerTag player={player} size="sm">
           {player.status === "break" && <span title="On break">☕</span>}{player.status === "keen" && <span title="Wants to play">⚡</span>}
-          <StreakBadge count={streaks.get(player.id) || 0} />{tired.has(player.id) && player.status !== "break" && <span title="Played 2+ in a row">💃</span>}
+          <StreakBadge count={streaks.get(player.id) || 0} /><RunBadge count={runs.get(player.id)} />
         </PlayerTag>
       </button>)}
-    </div><div className="cb-org-legend"><span>plain = normal</span><span className="keen">⚡ = wants to play (priority)</span><span className="rest">☕ = on break</span><span>💃 = 2+ games in a row</span><span>⭐ 3 · 🔥 4 · 👑 5+ wins in a row</span></div>
+    </div><div className="cb-org-legend"><span>plain = normal</span><span className="keen">⚡ = wants to play (priority)</span><span className="rest">☕ = on break</span><span>💃{RUN_MIN} = {RUN_MIN} games in a row</span><span>⭐ 3 · 🔥 4 · 👑 5+ wins in a row</span></div>
       <p className="cb-note">Status changes apply when a court picks its next game. To redo a game that hasn't started, use Remix.</p>
     </section>
     {debug && state.showStats && <StatsPanel state={state} />}{debug && state.showLog && <GameLog state={state} actions={actions} />}

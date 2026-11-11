@@ -24,4 +24,14 @@ export function winStreaks(log, upTo = log.length) {
   }
   return m;
 }
+// Games in a row for each player worth showing, so the organiser can see who to rest. Counts the
+// game in progress, so courts finishing at different times don't change the comparison. Shows
+// from RUN_MIN, and not at all when everyone available is level: there is nobody to choose between.
+export const RUN_MIN = 3;
+export function playRuns(players, playing) {
+  const here = players.filter((p) => p.status !== "break")
+    .map((p) => ({ id: p.id, run: p.consec + (playing.has(p.id) ? 1 : 0) }));
+  if (new Set(here.map((p) => p.run)).size < 2) return new Map();
+  return new Map(here.filter((p) => p.run >= RUN_MIN).map((p) => [p.id, p.run]));
+}
 export const streakIcon = (n) => (n >= 5 ? "👑" : n >= 4 ? "🔥" : n >= STREAK_MIN ? "⭐" : "");

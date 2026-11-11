@@ -9,7 +9,7 @@
 --      game_players
 --   4. Tier logic (with buffer zone)
 --   5. Game functions (RPCs): start_game, remix_game, finish_game,
---      correct_result, end_session
+--      correct_result, reset_rest_streaks, end_session
 --   6. Row Level Security
 -- =====================================================================
 
@@ -469,20 +469,6 @@ begin
 
   update courts set hold_started_at = null where id = p_court_id;
 
-  -- same rule as the original app: anyone free who wasn't picked is resting,
-  -- so their back-to-back streak resets
-  update session_players sp
-     set consec = 0
-   where sp.session_id = v_court.session_id
-     and sp.left_at is null
-     and sp.status <> 'break'
-     and not exists (
-           select 1 from game_players gp
-             join games g on g.id = gp.game_id
-            where g.session_id = v_court.session_id
-              and g.status = 'playing'
-              and gp.player_id = sp.player_id);
-
   return v_game_id;
 end;
 $$;
@@ -676,6 +662,30 @@ begin
 end;
 $$;
 
+-- Clear the back-to-back streak of everyone here who isn't on a court. Runs once
+-- all of a round's games have started, so a player planned for a later court keeps theirs.
+create or replace function public.reset_rest_streaks(p_session_id bigint)
+returns void
+language plpgsql
+set search_path = public
+as $$
+begin
+  if not is_organiser() then
+    raise exception 'Only the organiser can update streaks';
+  end if;
+  update session_players sp
+     set consec = 0
+   where sp.session_id = p_session_id
+     and sp.left_at is null
+     and not exists (
+           select 1 from game_players gp
+             join games g on g.id = gp.game_id
+            where g.session_id = p_session_id
+              and g.status = 'playing'
+              and gp.player_id = sp.player_id);
+end;
+$$;
+
 -- End the play day. Unfinished games are marked abandoned (no Elo change).
 create or replace function public.end_session(p_session_id bigint)
 returns void
@@ -705,6 +715,7 @@ revoke execute on function public.start_game(bigint, bigint[], bigint[]) from pu
 revoke execute on function public.remix_game(bigint)                     from public, anon;
 revoke execute on function public.finish_game(bigint, int, int)            from public, anon;
 revoke execute on function public.correct_result(bigint, int, int)         from public, anon;
+revoke execute on function public.reset_rest_streaks(bigint)             from public, anon;
 revoke execute on function public.end_session(bigint)                    from public, anon;
 revoke execute on function private.rate_game(bigint, char, numeric)      from public, anon;
 revoke execute on function private.mov_multiplier(int, int)              from public, anon;
@@ -712,6 +723,7 @@ grant  execute on function public.start_game(bigint, bigint[], bigint[]) to auth
 grant  execute on function public.remix_game(bigint)                     to authenticated;
 grant  execute on function public.finish_game(bigint, int, int)            to authenticated;
 grant  execute on function public.correct_result(bigint, int, int)         to authenticated;
+grant  execute on function public.reset_rest_streaks(bigint)             to authenticated;
 grant  execute on function public.end_session(bigint)                    to authenticated;
 grant  execute on function private.rate_game(bigint, char, numeric)      to authenticated;
 grant  execute on function private.mov_multiplier(int, int)              to authenticated;

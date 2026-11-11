@@ -20,7 +20,7 @@ export const HELP = {
         "<b>plain</b> — normal, in the rotation.",
         "<b>⚡ keen</b> — wants to play next; gets priority for the next free spot.",
         "<b>☕ break</b> — resting; won't be picked until tapped back to normal.",
-        "<b>💃</b> next to a name means that person has played 2+ games in a row."
+        "<b>💃5</b> next to a name means that person has played 5 games in a row, counting the one in progress. Use it to choose who to rest, then tap their name to put them on <b>☕ break</b>. It shows from 3 in a row, and stays hidden when everyone has played the same number, because there is nobody to choose between. Taking a break or sitting out a game resets it."
       ]],
       ["Win streaks", [
         "Win 3 or more games in a row and a badge appears next to your name: <b>⭐</b> 3 wins, <b>🔥</b> 4 wins, <b>👑</b> 5+ wins.",
@@ -65,7 +65,7 @@ export const HELP = {
         "<b>bình thường</b> — vẫn trong vòng xoay.",
         "<b>⚡ keen</b> — muốn chơi tiếp; được ưu tiên vào trận kế.",
         "<b>☕ break</b> — đang nghỉ; không bị xếp trận cho tới khi bấm về bình thường.",
-        "<b>💃</b> cạnh tên nghĩa là người đó đã chơi 2 trận liên tiếp trở lên."
+        "<b>💃5</b> cạnh tên nghĩa là người đó đã chơi 5 trận liên tiếp, tính cả trận đang đánh. Dùng số này để chọn ai nên nghỉ, rồi bấm vào tên để chuyển sang <b>☕ break</b>. Số chỉ hiện từ 3 trận liên tiếp, và ẩn khi mọi người đã chơi số trận bằng nhau, vì không cần chọn ai. Nghỉ break hoặc ngồi ngoài một trận sẽ đưa số này về 0."
       ]],
       ["Chuỗi thắng", [
         "Thắng 3 trận liên tiếp trở lên sẽ có huy hiệu cạnh tên: <b>⭐</b> 3 trận, <b>🔥</b> 4 trận, <b>👑</b> 5 trận trở lên.",

@@ -1,4 +1,4 @@
-import { pairKey, matchKey } from "./helpers";
+import { pairKey, matchKey } from "./helpers.js";
 const cnt = (m, k) => m.get(k) || 0;
 export const W = {
   aheadSoft: 40,       // per game a player is ahead of the least-played person
@@ -28,10 +28,10 @@ export function playingIds(state) {
   return s;
 }
 
-// players who can be picked for a new game right now
-export function freeCandidates(state) {
+// players who can be picked for a new game right now; `reserved` holds ids already planned for another court
+export function freeCandidates(state, reserved = new Set()) {
   const busy = playingIds(state);
-  return state.players.filter((p) => p.status !== "break" && !p.pendingRemove && !busy.has(p.id));
+  return state.players.filter((p) => p.status !== "break" && !p.pendingRemove && !busy.has(p.id) && !reserved.has(p.id));
 }
 
 // Score how good a 2v2 split is. Balance (by Elo), then fresh partners and matchups.
@@ -73,8 +73,8 @@ function* combos4(arr) {
 
 // Choose the best game from free players. Who plays: fewest games > ⚡ keen > shortest streak.
 // How they split: Elo balance, then repeat-avoidance. Returns team ids, or null if < 4 free.
-export function pickGame(state, avoidKey, random = Math.random) {
-  const cands = freeCandidates(state);
+export function pickGame(state, avoidKey, random = Math.random, reserved = new Set()) {
+  const cands = freeCandidates(state, reserved);
   if (cands.length < 4) return null;
   const minGames = Math.min(...cands.map((p) => p.games));
   let best = null;
@@ -93,5 +93,51 @@ export function pickGame(state, avoidKey, random = Math.random) {
     }
   }
   return best;
+}
+
+// Squared, so one terrible court costs more than several slightly-off ones
+function courtCost(state, four) {
+  return bestPairing(state, four).s ** 2;
+}
+
+// Swap players between courts while that lowers the round's total cost. Only moves
+// people between these groups, so who plays is unchanged.
+function improveRound(state, groups) {
+  let moved = true;
+  while (moved) {
+    moved = false;
+    for (let a = 0; a < groups.length; a++) {
+      for (let b = a + 1; b < groups.length; b++) {
+        for (let i = 0; i < 4; i++) {
+          for (let j = 0; j < 4; j++) {
+            const before = courtCost(state, groups[a]) + courtCost(state, groups[b]);
+            [groups[a][i], groups[b][j]] = [groups[b][j], groups[a][i]];
+            if (courtCost(state, groups[a]) + courtCost(state, groups[b]) < before - 1e-9) moved = true;
+            else [groups[a][i], groups[b][j]] = [groups[b][j], groups[a][i]];
+          }
+        }
+      }
+    }
+  }
+}
+
+// Plan up to `count` courts as one round. pickGame's rules choose who plays; court by court
+// the last one would be stuck with whoever is left, so the groups are then rebalanced together.
+// Returns one {teamA, teamB} per court that can be filled.
+export function planRound(state, count, random = Math.random) {
+  const reserved = new Set();
+  const groups = [];
+  while (groups.length < count) {
+    const pick = pickGame(state, undefined, random, reserved);
+    if (!pick) break;
+    const ids = [...pick.teamA, ...pick.teamB];
+    ids.forEach((id) => reserved.add(id));
+    groups.push(ids.map((id) => state.players.find((p) => p.id === id)));
+  }
+  improveRound(state, groups);
+  return groups.map((four) => {
+    const { t1, t2 } = bestPairing(state, four);
+    return { teamA: t1.map((p) => p.id), teamB: t2.map((p) => p.id) };
+  });
 }
 

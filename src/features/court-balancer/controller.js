@@ -1,6 +1,6 @@
 import { initialState } from "./state";
 import { Oops, query } from "./repository";
-import { playingIds as getPlayingIds, pickGame as chooseGame } from "./matchmaking";
+import { playingIds as getPlayingIds, pickGame as chooseGame, planRound as chooseRound } from "./matchmaking";
 import { recordToday as addHistory, makeLogEntry as buildLog, applyRatingRows as applyRatings, logAsText as formatLog, scoreOf } from "./history";
 import { parseScore, scoreProblem } from "./scoring.mjs";
 import { loadBasics as fetchBasics, loadRoster as fetchRoster, loadSession as fetchSession } from "./session";
@@ -21,6 +21,7 @@ export function createCourtBalancer(db, onChange) {
   const nowIso = () => new Date().toISOString();
   const playingIds = () => getPlayingIds(state);
   const pickGame = (avoidKey) => chooseGame(state, avoidKey);
+  const planRound = (count) => chooseRound(state, count);
   const recordToday = (A, B) => addHistory(state, A, B);
   const makeLogEntry = (...args) => buildLog(state, ...args);
   const applyRatingRows = (rows) => applyRatings(state, rows);
@@ -230,23 +231,34 @@ export function createCourtBalancer(db, onChange) {
   async function fillCourt(court, avoidKey) {
     const pick = pickGame(avoidKey);
     if (!pick) return false;
+    await startGame(court, pick);
+    await resetRestingStreaks();
+    return true;
+  }
+
+  async function startGame(court, pick) {
     const gameId = await q(db.rpc("start_game", {
       p_court_id: court.id, p_team_a: pick.teamA, p_team_b: pick.teamB,
     }));
     const game = await q(db.from("games").select("ranked").eq("id", gameId).single());
     court.game = { id: gameId, ranked: game.ranked, teamA: pick.teamA, teamB: pick.teamB };
     court.holdStartedAt = null;
-    // same as the server: anyone free who wasn't picked is resting, so their streak resets
-    const busy = playingIds();
-    state.players.forEach((p) => { if (p.status !== "break" && !busy.has(p.id)) p.consec = 0; });
-    return true;
   }
 
-  // Fill every court that is empty, open, and not in its waiting window
+  // Anyone not on a court is resting, so their streak resets. Runs after all of a round's
+  // games have started, so players planned for a later court keep theirs.
+  async function resetRestingStreaks() {
+    await q(db.rpc("reset_rest_streaks", { p_session_id: state.session.id }));
+    const busy = playingIds();
+    state.players.forEach((p) => { if (!busy.has(p.id)) p.consec = 0; });
+  }
+
+  // Fill every court that is empty, open, and not in its waiting window, planned as one round
   async function fillEmptyCourts() {
-    for (const court of state.courts) {
-      if (!court.game && !court.closing && !court.holdStartedAt) await fillCourt(court);
-    }
+    const open = state.courts.filter((c) => !c.game && !c.closing && !c.holdStartedAt);
+    const picks = planRound(open.length);
+    for (const [i, pick] of picks.entries()) await startGame(open[i], pick);
+    if (picks.length) await resetRestingStreaks();
   }
 
   // ---------------- the waiting window ("hold") ----------------
