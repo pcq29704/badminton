@@ -421,6 +421,25 @@ select.cb-input:focus { outline: 0; border-color: var(--cb-gold); box-shadow: 0 
 .cb-org-win-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .cb-btn.cb-org-win { height: 52px; }
 .cb-org-win-hint { color: var(--cb-faint); font-size: 12px; text-align: center; }
+.cb-btn.cb-org-win { width: 100%; margin-top: 4px; }
+/* score boxes under each team; the side ahead turns green so swapped scores stand out */
+.cb-org-score-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin-top: 20px; }
+input.cb-input.cb-org-score { height: 52px; font-size: 26px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+input.cb-input.cb-org-score.leading { border-color: var(--cb-win); background: rgb(82 220 158 / .12); color: var(--cb-win); }
+.cb-org-score-dash { color: var(--cb-faint); font-size: 20px; }
+.cb-org-score-msg { min-height: 16px; margin: 8px 0; color: var(--cb-faint); font-size: 12px; line-height: 16px; text-align: center; }
+.cb-org-score-msg.bad { color: var(--cb-loss); }
+.cb-org-team.leading .cb-org-name { color: var(--cb-win); }
+/* confirmation sheet */
+.cb-org-sheet-backdrop { position: fixed; inset: 0; z-index: 19; display: flex; align-items: flex-end; justify-content: center; padding: 16px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: var(--cb-scrim); }
+.cb-org-sheet { width: min(520px, 100%); padding: 20px; border: 1px solid var(--cb-line); background: linear-gradient(180deg, var(--cb-card-top), var(--cb-card)); }
+.cb-org-sheet-result { margin-top: 12px; font-size: 16px; line-height: 1.5; }
+.cb-org-sheet-result p { margin: 0; }
+.cb-org-sheet-sub { margin-top: 4px; color: var(--cb-muted); font-size: 14px; }
+.cb-org-sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+.cb-org-log-score, .cb-match-score { align-self: center; color: var(--cb-ink); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cb-match-score { padding: 0 4px; text-align: center; }
+.cb-match-label { color: var(--cb-muted); font-size: 12px; }
 .cb-org-idle { display: grid; justify-items: center; gap: 8px; padding: 12px 0; color: var(--cb-muted); text-align: center; }
 .cb-org-countdown { color: var(--cb-gold-hi); font-size: 28px; font-weight: 700; }
 @container (max-width: 460px) {

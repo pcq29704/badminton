@@ -75,4 +75,3 @@ hash of the token in `player_sessions`. Refreshing the page keeps the player sig
 deletes that session only, so other devices stay signed in. Profile edits and image uploads no longer send the password.
 Plan: `docs/plans/2026-10-17-player-session-cookie.md`.
 
-Test

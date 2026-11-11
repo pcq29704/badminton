@@ -22,6 +22,8 @@ export function initialState(configured = true) {
     recentMatches: [],      // matchKeys of today's finished games, oldest first
     lastPartner: new Map(), // playerId -> partner in their latest finished game today
     log: [],                // today's finished games, oldest first
+    scoreDrafts: {},        // gameId -> {a, b}: score boxes as typed
+    scoreSheet: null,       // {kind: "finish"|"correct", gameId, courtNo} while confirming a score
     names: new Map(),       // id -> name (includes people who have left)
     // panels
     showStats: false, showLog: false, showHelp: false, showManage: false, helpLang: "en",

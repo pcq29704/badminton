@@ -42,7 +42,7 @@ const GAMES_LIMIT = 1000;
 
 export async function loadGames(db: Db) {
   const { data, error } = await db.from("games")
-    .select("id,ended_at,winner,ranked,courts(court_no),game_players(team,players(name,username))")
+    .select("id,ended_at,winner,score_a,score_b,ranked,courts(court_no),game_players(team,players(name,username))")
     .eq("status", "finished")
     .not("ended_at", "is", null)
     .order("ended_at", { ascending: false })
@@ -72,7 +72,7 @@ export async function loadProfile(db: Db, rawUsername: unknown) {
 
   // One query: every finished game this player was in, with all four players.
   const { data: games, error: gamesError } = await db.from("games")
-    .select("id,ended_at,winner,status,me:game_players!inner(player_id),game_players(team,players(name,username,tier,profile_image_path))")
+    .select("id,ended_at,winner,score_a,score_b,status,me:game_players!inner(player_id),game_players(team,players(name,username,tier,profile_image_path))")
     .eq("me.player_id", player.id)
     .eq("status", "finished")
     .order("ended_at", { ascending: false });
@@ -81,7 +81,7 @@ export async function loadProfile(db: Db, rawUsername: unknown) {
     const players = game.game_players || [];
     const side = (team: string) => players.filter((row: any) => row.team === team)
       .map((row: any) => ({ name: row.players?.name || "Player", username: row.players?.username || "", tier: row.players?.tier || "", profile_image_path: row.players?.profile_image_path || "" }));
-    return { ended_at: game.ended_at, winner: game.winner, team_a: side("A"), team_b: side("B") };
+    return { ended_at: game.ended_at, winner: game.winner, score_a: game.score_a ?? null, score_b: game.score_b ?? null, team_a: side("A"), team_b: side("B") };
   });
   return profileResponse(player, history);
 }

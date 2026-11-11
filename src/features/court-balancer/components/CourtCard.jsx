@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui";
 import { fmtLeft } from "../helpers";
 import { PlayerTag, StreakBadge, playerInfo } from "./Shared";
+import { ScoreInputs, readScore } from "./ScoreEntry";
 
 export default function CourtCard({ court, state, actions, tired, streaks }) {
   const game = court.game;
@@ -18,8 +19,11 @@ export default function CourtCard({ court, state, actions, tired, streaks }) {
     </div>
   </Card>;
 
-  function team(ids, side) {
-    return <div className={`cb-org-team ${side}`}>{ids.map((id) => {
+  const score = readScore(state, game.id);
+  const names = (ids) => ids.map((id) => playerInfo(state, id).name).join(" & ");
+
+  function team(ids, side, leading) {
+    return <div className={`cb-org-team ${side}${leading ? " leading" : ""}`}>{ids.map((id) => {
       const player = playerInfo(state, id);
       return <PlayerTag key={id} player={player} size="lg">
         <span className="cb-org-flags">
@@ -37,8 +41,8 @@ export default function CourtCard({ court, state, actions, tired, streaks }) {
       <h2 className="cb-org-court-label">Court {court.no} <span className="cb-org-tag">{game.ranked ? "Ranked" : "Unranked"}</span>{court.closing && <span className="cb-org-closing">closing after this game</span>}</h2>
       <div className="cb-org-actions">{!court.closing && <button className="cb-btn quiet mini" onClick={() => actions.reshuffleCourt(court.no)} title="Redraw this game">Remix</button>}<button className="cb-btn quiet mini" onClick={() => actions.endCourt(court.no)}>{court.closing ? "Keep open" : "End"}</button></div>
     </div>
-    <div className="cb-org-teams">{team(game.teamA, "left")}<span className="cb-org-vs" aria-label="versus">vs</span>{team(game.teamB, "right")}</div>
-    <div className="cb-org-win-row"><button className="cb-btn cb-org-win" disabled={state.busy} onClick={() => actions.finishCourt(court.no, "A")}>Won</button><button className="cb-btn cb-org-win" disabled={state.busy} onClick={() => actions.finishCourt(court.no, "B")}>Won</button></div>
-    <p className="cb-org-win-hint">Tap the winning team</p>
+    <div className="cb-org-teams">{team(game.teamA, "left", score.leader === "A")}<span className="cb-org-vs" aria-label="versus">vs</span>{team(game.teamB, "right", score.leader === "B")}</div>
+    <ScoreInputs state={state} actions={actions} gameId={game.id} names={[names(game.teamA), names(game.teamB)]} />
+    <button className="cb-btn cb-org-win" disabled={state.busy || !score.valid} onClick={() => actions.reviewScore(court.no)}>Finish</button>
   </Card>;
 }

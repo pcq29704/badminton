@@ -1,5 +1,6 @@
 import PlayerAvatar from "../PlayerAvatar";
 import { profileHref } from "../../features/court-balancer/helpers";
+import { formatScore, resultLabel } from "../../features/court-balancer/scoring.mjs";
 
 const same = (a, b) => String(a || "").toLowerCase() === String(b || "").toLowerCase();
 
@@ -36,15 +37,24 @@ export default function MatchRow({ game, focus, when, meta, focusKey, viewer }) 
   const decided = game.winner === "A" || game.winner === "B";
   const won = decided && game.winner === ourKey;
   const result = !decided ? "open" : won ? "won" : "lost";
+  // Games with a score show it between the teams, the player's own team first.
+  const [ourScore, theirScore] = inB ? [game.score_b, game.score_a] : [game.score_a, game.score_b];
+  const score = formatScore(ourScore, theirScore);
   return <li className="cb-match">
     <div className={`cb-match-res ${result}`}>
       <b>{result === "won" ? "Won" : result === "lost" ? "Lost" : "No result"}</b>
-      <span className="cb-note">{when}</span>
+      <span className="cb-note">{when}{score && <> · {resultLabel(game.score_a, game.score_b)}</>}</span>
     </div>
     <Side players={us} state={decided ? (won ? "won" : "lost") : ""} isMe={(player) => Boolean(focus) && same(player.username, focus)} isYou={() => false} />
-    <span className="cb-match-vs" aria-label="versus">vs</span>
+    <Versus score={score} />
     <Side players={them} state={decided ? (won ? "lost" : "won") : ""} them isMe={() => false} isYou={() => false} />
   </li>;
+}
+
+function Versus({ score }) {
+  return score
+    ? <span className="cb-match-score" aria-label={`score ${score}`}>{score}</span>
+    : <span className="cb-match-vs" aria-label="versus">vs</span>;
 }
 
 function NeutralRow({ game, meta, focusKey, viewer }) {
@@ -52,10 +62,11 @@ function NeutralRow({ game, meta, focusKey, viewer }) {
   const state = (side) => decided ? (game.winner === side ? "won" : "lost") : "";
   const isMe = (player) => Boolean(focusKey) && playerKey(player) === focusKey;
   const isYou = (player) => Boolean(viewer?.username) && same(player.username, viewer.username);
+  const score = formatScore(game.score_a, game.score_b);
   return <li className="cb-match neutral">
-    <div className="cb-match-meta">{meta}</div>
+    <div className="cb-match-meta">{meta}{score && <span className="cb-match-label"> · {resultLabel(game.score_a, game.score_b)}</span>}</div>
     <Side players={game.team_a || []} state={state("A")} isMe={isMe} isYou={isYou} winLabel />
-    <span className="cb-match-vs" aria-label="versus">vs</span>
+    <Versus score={score} />
     <Side players={game.team_b || []} state={state("B")} them isMe={isMe} isYou={isYou} winLabel />
   </li>;
 }

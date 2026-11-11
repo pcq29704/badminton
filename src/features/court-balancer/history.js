@@ -1,4 +1,5 @@
 import { pairKey, matchKey } from "./helpers";
+import { formatScore, resultLabel } from "./scoring.mjs";
 const cnt = (m, k) => m.get(k) || 0;
 const inc = (m, k, w = 1) => m.set(k, cnt(m, k) + w);
 export function recordHistory(state, teamA, teamB, weight) {
@@ -13,8 +14,8 @@ export function recordToday(state, teamA, teamB) {
   state.lastPartner.set(teamB[0], teamB[1]); state.lastPartner.set(teamB[1], teamB[0]);
 }
 
-// Turn game_players rows into a log entry
-export function makeLogEntry(state, gameId, courtNo, winner, endedAt, rows) {
+// Turn game_players rows into a log entry. `score` is {scoreA, scoreB, mov}; old games have none.
+export function makeLogEntry(state, gameId, courtNo, winner, endedAt, rows, score = {}) {
   const side = (t) => rows.filter((r) => r.team === t).map((r) => ({
     id: r.player_id,
     name: r.players?.name || state.players.find((p) => p.id === r.player_id)?.name || state.names.get(r.player_id) || "?",
@@ -23,9 +24,16 @@ export function makeLogEntry(state, gameId, courtNo, winner, endedAt, rows) {
     after: Number(r.elo_after),
     tierBefore: r.tier_before,
     tierAfter: r.tier_after,
+    k: r.k_used == null ? null : Number(r.k_used),
   }));
-  return { gameId, courtNo, winner, endedAt, teamA: side("A"), teamB: side("B") };
+  return {
+    gameId, courtNo, winner, endedAt, teamA: side("A"), teamB: side("B"),
+    scoreA: score.scoreA ?? null, scoreB: score.scoreB ?? null, mov: score.mov == null ? null : Number(score.mov),
+  };
 }
+
+// Score fields from a games row or a finish_game / correct_result row
+export const scoreOf = (row) => ({ scoreA: row?.score_a ?? null, scoreB: row?.score_b ?? null, mov: row?.mov_multiplier ?? null });
 
 // Apply new ratings returned by finish_game / correct_result
 export function applyRatingRows(state, rows) {
@@ -63,7 +71,8 @@ export function logAsText(state) {
     if (f.repeatB) flags.push(`team B repeated (x${f.repeatB} before)`);
     if (f.repeatMatch) flags.push(`MATCHUP REPEATED (x${f.repeatMatch} before)`);
     const time = new Date(e.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    return `#${i + 1} [${time}] Court ${e.courtNo} (${e.ranked ? "Ranked" : "Unranked"}) — Team ${e.winner} won\n` +
+    const score = e.scoreA == null ? "" : ` ${formatScore(e.scoreA, e.scoreB)} (${resultLabel(e.scoreA, e.scoreB)})`;
+    return `#${i + 1} [${time}] Court ${e.courtNo} (${e.ranked ? "Ranked" : "Unranked"}) — Team ${e.winner} won${score}\n` +
       `   A: ${nm(e.teamA, e.ranked)}\n   B: ${nm(e.teamB, e.ranked)}\n` +
       `   ${flags.length ? flags.join(", ") : "balanced, all fresh"}`;
   });

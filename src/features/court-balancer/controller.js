@@ -1,7 +1,8 @@
 import { initialState } from "./state";
 import { Oops, query } from "./repository";
 import { playingIds as getPlayingIds, pickGame as chooseGame } from "./matchmaking";
-import { recordToday as addHistory, makeLogEntry as buildLog, applyRatingRows as applyRatings, logAsText as formatLog } from "./history";
+import { recordToday as addHistory, makeLogEntry as buildLog, applyRatingRows as applyRatings, logAsText as formatLog, scoreOf } from "./history";
+import { parseScore, scoreProblem } from "./scoring.mjs";
 import { loadBasics as fetchBasics, loadRoster as fetchRoster, loadSession as fetchSession } from "./session";
 import { matchKey, usernameFromName, winStreaks, streakIcon, STREAK_MIN } from "./helpers";
 
@@ -295,19 +296,56 @@ export function createCourtBalancer(db, onChange) {
   }
 
   // ---------------- play: results ----------------
-  function finishCourt(no, winner) {
+  // Score boxes keep the text as typed, per game; scoring.mjs decides if it's a valid score.
+  function setScore(gameId, side, text) {
+    const draft = state.scoreDrafts[gameId] || { a: "", b: "" };
+    state.scoreDrafts[gameId] = { ...draft, [side]: String(text).slice(0, 3) };
+    render();
+  }
+
+  function draftScore(gameId) {
+    const draft = state.scoreDrafts[gameId] || {};
+    const a = parseScore(draft.a), b = parseScore(draft.b);
+    return scoreProblem(a, b, state.settings) ? null : [a, b];
+  }
+
+  function closeScoreSheet() { state.scoreSheet = null; render(); }
+
+  // "Finish" on a court: restate the result on the confirmation sheet before saving
+  function reviewScore(no) {
+    const court = courtByNo(no);
+    if (!court?.game || !draftScore(court.game.id)) return;
+    state.scoreSheet = { kind: "finish", gameId: court.game.id, courtNo: no };
+    render();
+  }
+
+  function confirmScore() {
+    const sheet = state.scoreSheet;
+    const score = sheet && draftScore(sheet.gameId);
+    if (!score) return;
+    if (sheet.kind === "finish") finishCourt(sheet.courtNo, ...score);
+    else applyCorrection(sheet.gameId, ...score);
+  }
+
+  function scoreSaved(gameId) {
+    if (state.scoreSheet?.gameId === gameId) state.scoreSheet = null;
+    delete state.scoreDrafts[gameId];
+  }
+
+  function finishCourt(no, scoreA, scoreB) {
     void run(async () => {
       const court = courtByNo(no);
       if (!court || !court.game) return;
       const g = court.game;
-      const rows = await q(db.rpc("finish_game", { p_game_id: g.id, p_winner: winner }));
+      const rows = await q(db.rpc("finish_game", { p_game_id: g.id, p_score_a: scoreA, p_score_b: scoreB }));
       if (g.ranked) applyRatingRows(rows);
+      scoreSaved(g.id);
 
       const played = new Set([...g.teamA, ...g.teamB]);
       state.players.forEach((p) => {
         if (played.has(p.id)) { p.games++; p.consec++; if (g.ranked) p.gamesTotal++; }
       });
-      const entry = makeLogEntry(g.id, court.no, winner, nowIso(), rows);
+      const entry = makeLogEntry(g.id, court.no, scoreA > scoreB ? "A" : "B", nowIso(), rows, scoreOf(rows[0]));
       entry.ranked = g.ranked;
       state.log.push(entry);
       recordToday(g.teamA, g.teamB);
@@ -345,18 +383,24 @@ export function createCourtBalancer(db, onChange) {
     }).filter(Boolean);
   }
 
-  // Fix a result where the wrong side was tapped
+  // Fix a wrong score: opens the sheet with the saved score (empty for old win/loss games)
   function correctResult(gameId) {
     const e = state.log.find((x) => x.gameId === gameId);
     if (!e) return;
-    const newWinner = e.winner === "A" ? "B" : "A";
-    const newNames = (newWinner === "A" ? e.teamA : e.teamB).map((p) => p.name).join(" & ");
-    if (!confirm(`Change the result of game #${state.log.indexOf(e) + 1} so that ${newNames} won?`)) return;
+    state.scoreDrafts[gameId] = { a: e.scoreA == null ? "" : String(e.scoreA), b: e.scoreB == null ? "" : String(e.scoreB) };
+    state.scoreSheet = { kind: "correct", gameId, courtNo: e.courtNo };
+    render();
+  }
+
+  function applyCorrection(gameId, scoreA, scoreB) {
+    const e = state.log.find((x) => x.gameId === gameId);
+    if (!e) return;
     void run(async () => {
-      const rows = await q(db.rpc("correct_result", { p_game_id: gameId, p_winner: newWinner }));
+      const rows = await q(db.rpc("correct_result", { p_game_id: gameId, p_score_a: scoreA, p_score_b: scoreB }));
       if (e.ranked) applyRatingRows(rows);
-      const fresh = makeLogEntry(gameId, e.courtNo, newWinner, e.endedAt, rows);
-      Object.assign(e, { winner: newWinner, teamA: fresh.teamA, teamB: fresh.teamB });
+      scoreSaved(gameId);
+      const fresh = makeLogEntry(gameId, e.courtNo, scoreA > scoreB ? "A" : "B", e.endedAt, rows, scoreOf(rows[0]));
+      Object.assign(e, { winner: fresh.winner, teamA: fresh.teamA, teamB: fresh.teamB, scoreA: fresh.scoreA, scoreB: fresh.scoreB, mov: fresh.mov });
       showResultToast(e, true);
     });
   }
@@ -508,8 +552,8 @@ export function createCourtBalancer(db, onChange) {
   const actions = {
     login, signOut, retryLoad, bumpCourts, togglePick, pickAll, pickNone,
     updateLoginEmail, updateLoginPassword, updateNewName, updateNewUsername,
-    updateNewTier, addNewPlayerAtSetup, startDay, fillNow, finishCourt,
-    correctResult, toggleRanked, cycleStatus, removePlayer, updateAddExisting,
+    updateNewTier, addNewPlayerAtSetup, startDay, fillNow, setScore,
+    reviewScore, confirmScore, closeScoreSheet, correctResult, toggleRanked, cycleStatus, removePlayer, updateAddExisting,
     addExistingPlayer, addNewPlayerDuringPlay, addCourt, endCourt,
     reshuffleCourt, reshuffleAll, endDay, toggleStats, toggleManage,
     toggleLog, toggleHelp, setHelpLang, copyLog, hideToast,

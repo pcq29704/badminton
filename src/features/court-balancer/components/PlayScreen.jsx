@@ -5,6 +5,7 @@ import CourtCard from "./CourtCard";
 import ManagePlayers from "./ManagePlayers";
 import StatsPanel from "./StatsPanel";
 import GameLog from "./GameLog";
+import { ScoreSheet } from "./ScoreEntry";
 
 function courtCols(n) {
   if (n <= 1) return 1;
@@ -37,6 +38,7 @@ export default function PlayScreen({ state, actions }) {
       </div>
     </div>
     {state.showHelp && <HelpPanel state={state} actions={actions} />}
+    <ScoreSheet state={state} actions={actions} />
     {hot.length > 0 && <section className="cb-org-group cb-org-streak">
       <h2 className="cb-org-label">On a streak</h2>
       <div className="cb-org-streak-list">{hot.map(({ player, n }) =>

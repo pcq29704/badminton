@@ -1,7 +1,8 @@
 import { Fragment } from "react";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { HELP } from "../help";
-import { STREAK_MIN, isDebug, signed, streakIcon } from "../helpers";
+import { STREAK_MIN, signed, streakIcon } from "../helpers";
+import { formatDelta, formatScore, resultLabel } from "../scoring.mjs";
 
 export function Header({ subtitle }) {
   return <header className="cb-auth-head">
@@ -58,17 +59,21 @@ export function HelpPanel({ state, actions }) {
 export function Toast({ toast, actions }) {
   if (!toast) return null;
   const entry = toast.result;
-  const winners = entry && (entry.winner === "A" ? entry.teamA : entry.teamB);
+  const [winners, losers] = entry ? (entry.winner === "A" ? [entry.teamA, entry.teamB] : [entry.teamB, entry.teamA]) : [];
+  const names = (team) => team.map((p) => p.name).join(" & ");
+  const scored = entry?.scoreA != null;
   return <div className={`cb-org-toast ${toast.kind}`} role={toast.kind === "error" ? "alert" : "status"}>
     <button className="cb-org-toast-x" onClick={actions.hideToast} aria-label="Close">×</button>
     {entry ? <>
-      <div className="cb-org-toast-title">{toast.corrected ? "Corrected — " : ""}Court {entry.courtNo} ({entry.ranked ? "Ranked" : "Unranked"}): {winners.map((p) => p.name).join(" & ")} won</div>
-      {isDebug() && <div className="cb-org-toast-body">{entry.ranked ? [...entry.teamA, ...entry.teamB].map((p, index) =>
-        <Fragment key={p.id}>{index > 0 && " · "}{p.name} <Delta value={p.after - p.before} /></Fragment>) : "Unranked — ratings unchanged"}</div>}
+      <div className="cb-org-toast-title">{toast.corrected ? "Corrected — " : ""}Court {entry.courtNo} ({entry.ranked ? "Ranked" : "Unranked"}): {scored
+        ? `${names(winners)} beat ${names(losers)}, ${formatScore(Math.max(entry.scoreA, entry.scoreB), Math.min(entry.scoreA, entry.scoreB))}`
+        : `${names(winners)} won`}</div>
+      <div className="cb-org-toast-body">{scored && <>{resultLabel(entry.scoreA, entry.scoreB)} · </>}{entry.ranked ? [...winners, ...losers].map((p, index) =>
+        <Fragment key={p.id}>{index > 0 && " · "}{p.name} <span className={`cb-org-delta ${p.after >= p.before ? "up" : "down"}`}>{formatDelta(p.after - p.before)}</span></Fragment>) : "Unranked — ratings unchanged"}</div>
       {toast.shouts?.length > 0 && <div className="cb-org-toast-body cb-org-shout">{toast.shouts.map((shout, index) =>
         <Fragment key={index}>{index > 0 && <br />}{shout.icon} <b>{shout.name}</b>{shout.text}</Fragment>)}</div>}
     </> : <div className="cb-org-pre">{toast.message}</div>}
-    {toast.gameId && <button className="cb-btn quiet mini" onClick={() => actions.correctResult(toast.gameId)}>Wrong side? Flip result</button>}
+    {toast.gameId && <button className="cb-btn quiet mini" onClick={() => actions.correctResult(toast.gameId)}>Wrong score? Edit</button>}
   </div>;
 }
 

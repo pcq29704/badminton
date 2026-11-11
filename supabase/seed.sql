@@ -5,12 +5,15 @@
 -- created, so the first play day starts clean.
 begin;
 
-insert into public.settings (id, tier_buffer, k_provisional, k_established, provisional_games, hold_minutes, balance_deadzone)
-values (1, 25, 40, 24, 10, 10, 30)
+insert into public.settings (id, tier_buffer, k_provisional, k_established, provisional_games, hold_minutes, balance_deadzone,
+                             target_points, cap_points, mov_min, mov_max)
+values (1, 25, 40, 24, 10, 10, 30, 21, 30, 0.75, 2.0)
 on conflict (id) do update set
   tier_buffer = excluded.tier_buffer, k_provisional = excluded.k_provisional,
   k_established = excluded.k_established, provisional_games = excluded.provisional_games,
-  hold_minutes = excluded.hold_minutes, balance_deadzone = excluded.balance_deadzone;
+  hold_minutes = excluded.hold_minutes, balance_deadzone = excluded.balance_deadzone,
+  target_points = excluded.target_points, cap_points = excluded.cap_points,
+  mov_min = excluded.mov_min, mov_max = excluded.mov_max;
 
 insert into public.tiers (code, rank, seed_elo, min_elo, organiser_only) values
   ('S', 1, null, 1475, false),

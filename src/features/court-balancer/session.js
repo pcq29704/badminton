@@ -1,5 +1,5 @@
 import { W, HISTORY_SESSIONS } from "./matchmaking";
-import { recordHistory, recordToday, makeLogEntry } from "./history";
+import { recordHistory, recordToday, makeLogEntry, scoreOf } from "./history";
 export async function loadBasics(db, state, q) {
   const [settings, tiers] = await Promise.all([
     q(db.from("settings").select("*").eq("id", 1).single()),
@@ -25,7 +25,7 @@ export async function loadSession(db, state, q, id) {
       .eq("session_id", id).is("left_at", null)),
     q(db.from("courts").select("id,court_no,closing,hold_started_at,removed_at").eq("session_id", id).order("court_no")),
     q(db.from("games")
-      .select("id,court_id,status,winner,ended_at,ranked,game_players(player_id,team,elo_before,elo_after,tier_before,tier_after,players(name,username))")
+      .select("id,court_id,status,winner,score_a,score_b,mov_multiplier,ended_at,ranked,game_players(player_id,team,elo_before,elo_after,tier_before,tier_after,k_used,players(name,username))")
       .eq("session_id", id).in("status", ["playing", "finished"]).order("id")),
     q(db.from("sessions").select("id").eq("status", "ended").order("started_at", { ascending: false }).limit(HISTORY_SESSIONS)),
   ]);
@@ -80,7 +80,7 @@ export async function loadSession(db, state, q, id) {
   const seen = new Set();
   for (const g of finished) {
     g.game_players.forEach((r) => { if (r.players?.name) state.names.set(r.player_id, r.players.name); });
-    const e = makeLogEntry(state, g.id, courtNoById.get(g.court_id), g.winner, g.ended_at, g.game_players);
+    const e = makeLogEntry(state, g.id, courtNoById.get(g.court_id), g.winner, g.ended_at, g.game_players, scoreOf(g));
     e.ranked = g.ranked;
     state.log.push(e);
     recordToday(state, e.teamA.map((p) => p.id), e.teamB.map((p) => p.id));

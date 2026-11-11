@@ -43,7 +43,13 @@ create table public.settings (
   k_established     numeric not null default 24,  -- K afterwards
   provisional_games int     not null default 10,  -- how many games count as "new"
   hold_minutes      int     not null default 10,  -- waiting window (read by the app)
-  balance_deadzone  int     not null default 30   -- team Elo gap treated as balanced (read by the app)
+  balance_deadzone  int     not null default 30,  -- team Elo gap treated as balanced (read by the app)
+  target_points     int     not null default 21,  -- a game ends at this score...
+  cap_points        int     not null default 30,  -- ...unless it's deuce, up to this cap
+  mov_min           numeric not null default 0.75, -- Elo multiplier for a 1-point win
+  mov_max           numeric not null default 2.0,  -- multiplier for winning by target_points or more
+  constraint settings_points_check check (target_points >= 2 and cap_points >= target_points),
+  constraint settings_mov_check check (mov_min > 0 and mov_max >= mov_min)
 );
 insert into public.settings default values;
 
@@ -190,10 +196,19 @@ create table public.games (
   status     text not null default 'playing'
              check (status in ('playing', 'finished', 'remixed', 'abandoned')),
   winner     char(1) check (winner in ('A', 'B')),
+  score_a    smallint,                 -- null for games recorded before scores were entered
+  score_b    smallint,
+  mov_multiplier numeric,              -- margin multiplier used for the Elo change; null if unranked or no score
   started_at timestamptz not null default now(),
   ended_at   timestamptz,
   check ((status = 'finished') = (winner is not null)),
-  check ((status = 'playing')  = (ended_at is null))
+  check ((status = 'playing')  = (ended_at is null)),
+  constraint games_scores_paired check ((score_a is null) = (score_b is null)),
+  constraint games_scores_finished check (score_a is null or status = 'finished'),
+  constraint games_scores_winner check (
+    score_a is null
+    or (score_a > score_b and winner = 'A')
+    or (score_b > score_a and winner = 'B'))
 );
 create unique index one_live_game_per_court on public.games (court_id) where status = 'playing';
 create index games_session_idx on public.games (session_id, ended_at);
@@ -264,13 +279,85 @@ $$;
 -- 5. GAME FUNCTIONS (called from the app with supabase.rpc(...))
 -- =====================================================================
 
--- Internal helper, kept out of the public API: rates a finished game from
--- the stored elo_before / tier_before / k_used values. Used by both
--- finish_game and correct_result so the Elo maths lives in one place.
+-- Internal helpers live in the private schema, kept out of the public API.
 create schema if not exists private;
 grant usage on schema private to authenticated;
 
-create or replace function private.rate_game(p_game_id bigint, p_winner char)
+-- Score rule: why a final score can't be right, or null when it's valid.
+-- Keep in step with scoreProblem in src/features/court-balancer/scoring.mjs.
+create or replace function private.score_problem(p_a int, p_b int, p_target int, p_cap int)
+returns text
+language plpgsql immutable
+as $$
+declare
+  w int := greatest(p_a, p_b);
+  l int := least(p_a, p_b);
+begin
+  if p_a is null or p_b is null then
+    return format('Enter a whole number from 0 to %s for each team', p_cap);
+  end if;
+  if l < 0 or w > p_cap then return format('Scores must be between 0 and %s', p_cap); end if;
+  if w = l then return 'Scores can''t be tied'; end if;
+  if w < p_target then return format('A game ends when a team reaches %s', p_target); end if;
+  if w = p_target and l <= p_target - 2 then return null; end if;
+  if w = p_cap and l = p_cap - 1 then return null; end if;
+  if l < p_target - 1 then
+    return format('A game ends at %s unless it''s %s-all', p_target, p_target - 1);
+  end if;
+  if w = l + 2 then return null; end if;
+  if w = l + 1 then return format('At %s-all a team needs a 2-point lead', p_target - 1); end if;
+  return format('After %s-all the game ends as soon as a team leads by 2', p_target - 1);
+end;
+$$;
+
+-- Backstop so no route (RPC, table update, dashboard edit) can store an invalid score.
+-- Only checks when the score changes, so tuning settings later never blocks old rows.
+create or replace function private.games_check_score()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  v_set     settings%rowtype;
+  v_problem text;
+begin
+  if new.score_a is null and new.score_b is null then
+    return new;
+  end if;
+  if tg_op = 'UPDATE' and new.score_a is not distinct from old.score_a
+                      and new.score_b is not distinct from old.score_b then
+    return new;
+  end if;
+  select * into v_set from settings where id = 1;
+  v_problem := private.score_problem(new.score_a, new.score_b, v_set.target_points, v_set.cap_points);
+  if v_problem is not null then
+    raise exception 'Invalid score %-%: %', new.score_a, new.score_b, v_problem
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger games_check_score
+before insert or update of score_a, score_b on public.games
+for each row execute function private.games_check_score();
+
+-- Margin multiplier from the current settings
+create or replace function private.mov_multiplier(p_a int, p_b int)
+returns numeric
+language sql stable
+set search_path = public
+as $$
+  select s.mov_min + (s.mov_max - s.mov_min) * least(abs(p_a - p_b)::numeric / s.target_points, 1)
+    from settings s
+   where s.id = 1;
+$$;
+
+-- Internal helper, kept out of the public API: rates a finished game from
+-- the stored elo_before / tier_before / k_used values, scaled by the margin
+-- multiplier. Used by both finish_game and correct_result so the Elo maths
+-- lives in one place; calling it again replaces the old change.
+create or replace function private.rate_game(p_game_id bigint, p_winner char, p_mov numeric)
 returns void
 language plpgsql
 set search_path = public
@@ -294,7 +381,7 @@ begin
      where gp.game_id = p_game_id
   loop
     v_new := round(
-      r.elo_before + r.k_used * (
+      r.elo_before + r.k_used * p_mov * (
         (case when r.team = p_winner then 1 else 0 end)
       - (case when r.team = 'A' then v_exp_a else 1 - v_exp_a end)
       ), 2);
@@ -420,29 +507,40 @@ $$;
 
 -- Record a result and today's game counts in one transaction.
 -- Only ranked games update persistent Elo, tier, and games_total.
-create or replace function public.finish_game(p_game_id bigint, p_winner char)
+-- Finish a game from its score. The winner is derived from the score.
+create or replace function public.finish_game(p_game_id bigint, p_score_a int, p_score_b int)
 returns table (
-  player_id   bigint,
-  team        char,
-  elo_before  numeric,
-  elo_after   numeric,
-  tier_before text,
-  tier_after  text
+  player_id      bigint,
+  team           char,
+  elo_before     numeric,
+  elo_after      numeric,
+  tier_before    text,
+  tier_after     text,
+  k_used         numeric,
+  score_a        int,
+  score_b        int,
+  mov_multiplier numeric
 )
 language plpgsql
 set search_path = public
 as $$
 #variable_conflict use_column
 declare
-  v_game games%rowtype;
-  v_set  settings%rowtype;
+  v_game    games%rowtype;
+  v_set     settings%rowtype;
+  v_problem text;
+  v_winner  char;
+  v_mov     numeric;
 begin
   if not is_organiser() then
     raise exception 'Only the organiser can record results';
   end if;
-  if p_winner is null or p_winner not in ('A', 'B') then
-    raise exception 'Winner must be A or B';
+  select * into v_set from settings where id = 1;
+  v_problem := private.score_problem(p_score_a, p_score_b, v_set.target_points, v_set.cap_points);
+  if v_problem is not null then
+    raise exception '%', v_problem;
   end if;
+  v_winner := case when p_score_a > p_score_b then 'A' else 'B' end;
 
   select * into v_game from games where id = p_game_id for update;
   if not found then
@@ -458,7 +556,6 @@ begin
      for update of p;
 
   if v_game.ranked then
-    select * into v_set from settings where id = 1;
     update game_players gp
        set elo_before  = p.elo,
            tier_before = p.tier,
@@ -467,7 +564,8 @@ begin
       from players p
      where p.id = gp.player_id and gp.game_id = p_game_id;
 
-    perform private.rate_game(p_game_id, p_winner);
+    v_mov := private.mov_multiplier(p_score_a, p_score_b);
+    perform private.rate_game(p_game_id, v_winner, v_mov);
 
     update players p
        set games_total = p.games_total + 1
@@ -485,48 +583,63 @@ begin
    where sp.session_id = v_game.session_id
      and sp.player_id in (select gp.player_id from game_players gp where gp.game_id = p_game_id);
 
-  update games set status = 'finished', winner = p_winner, ended_at = now()
-   where id = p_game_id;
+  update games g
+     set status = 'finished', winner = v_winner, ended_at = now(),
+         score_a = p_score_a, score_b = p_score_b, mov_multiplier = v_mov
+   where g.id = p_game_id;
 
   return query
-    select gp.player_id, gp.team, gp.elo_before, gp.elo_after, gp.tier_before, gp.tier_after
+    select gp.player_id, gp.team, gp.elo_before, gp.elo_after, gp.tier_before, gp.tier_after,
+           gp.k_used, g.score_a::int, g.score_b::int, g.mov_multiplier
       from game_players gp
+      join games g on g.id = gp.game_id
      where gp.game_id = p_game_id
      order by gp.team, gp.player_id;
 end;
 $$;
 
--- Fix a result entered for the wrong team. Ranked results cannot be
+-- Fix a wrong score (or add one to an old game). Ranked results cannot be
 -- changed after one of the players finishes a later ranked game.
-create or replace function public.correct_result(p_game_id bigint, p_winner char)
+create or replace function public.correct_result(p_game_id bigint, p_score_a int, p_score_b int)
 returns table (
-  player_id   bigint,
-  team        char,
-  elo_before  numeric,
-  elo_after   numeric,
-  tier_before text,
-  tier_after  text
+  player_id      bigint,
+  team           char,
+  elo_before     numeric,
+  elo_after      numeric,
+  tier_before    text,
+  tier_after     text,
+  k_used         numeric,
+  score_a        int,
+  score_b        int,
+  mov_multiplier numeric
 )
 language plpgsql
 set search_path = public
 as $$
 #variable_conflict use_column
 declare
-  v_game games%rowtype;
+  v_game    games%rowtype;
+  v_set     settings%rowtype;
+  v_problem text;
+  v_winner  char;
+  v_mov     numeric;
 begin
   if not is_organiser() then
     raise exception 'Only the organiser can correct results';
   end if;
-  if p_winner is null or p_winner not in ('A', 'B') then
-    raise exception 'Winner must be A or B';
+  select * into v_set from settings where id = 1;
+  v_problem := private.score_problem(p_score_a, p_score_b, v_set.target_points, v_set.cap_points);
+  if v_problem is not null then
+    raise exception '%', v_problem;
   end if;
+  v_winner := case when p_score_a > p_score_b then 'A' else 'B' end;
 
   select * into v_game from games where id = p_game_id for update;
   if not found or v_game.status <> 'finished' then
     raise exception 'Game % has no recorded result to correct', p_game_id;
   end if;
 
-  if v_game.winner <> p_winner then
+  if p_score_a is distinct from v_game.score_a or p_score_b is distinct from v_game.score_b then
     if v_game.ranked then
       if exists (
         select 1
@@ -545,14 +658,19 @@ begin
        where gp.game_id = p_game_id
          for update of p;
 
-      perform private.rate_game(p_game_id, p_winner);
+      v_mov := private.mov_multiplier(p_score_a, p_score_b);
+      perform private.rate_game(p_game_id, v_winner, v_mov);
     end if;
-    update games set winner = p_winner where id = p_game_id;
+    update games g
+       set winner = v_winner, score_a = p_score_a, score_b = p_score_b, mov_multiplier = v_mov
+     where g.id = p_game_id;
   end if;
 
   return query
-    select gp.player_id, gp.team, gp.elo_before, gp.elo_after, gp.tier_before, gp.tier_after
+    select gp.player_id, gp.team, gp.elo_before, gp.elo_after, gp.tier_before, gp.tier_after,
+           gp.k_used, g.score_a::int, g.score_b::int, g.mov_multiplier
       from game_players gp
+      join games g on g.id = gp.game_id
      where gp.game_id = p_game_id
      order by gp.team, gp.player_id;
 end;
@@ -585,16 +703,18 @@ $$;
 -- Functions: logged-in users only (each one also checks is_organiser)
 revoke execute on function public.start_game(bigint, bigint[], bigint[]) from public, anon;
 revoke execute on function public.remix_game(bigint)                     from public, anon;
-revoke execute on function public.finish_game(bigint, char)              from public, anon;
-revoke execute on function public.correct_result(bigint, char)           from public, anon;
+revoke execute on function public.finish_game(bigint, int, int)            from public, anon;
+revoke execute on function public.correct_result(bigint, int, int)         from public, anon;
 revoke execute on function public.end_session(bigint)                    from public, anon;
-revoke execute on function private.rate_game(bigint, char)               from public, anon;
+revoke execute on function private.rate_game(bigint, char, numeric)      from public, anon;
+revoke execute on function private.mov_multiplier(int, int)              from public, anon;
 grant  execute on function public.start_game(bigint, bigint[], bigint[]) to authenticated;
 grant  execute on function public.remix_game(bigint)                     to authenticated;
-grant  execute on function public.finish_game(bigint, char)              to authenticated;
-grant  execute on function public.correct_result(bigint, char)           to authenticated;
+grant  execute on function public.finish_game(bigint, int, int)            to authenticated;
+grant  execute on function public.correct_result(bigint, int, int)         to authenticated;
 grant  execute on function public.end_session(bigint)                    to authenticated;
-grant  execute on function private.rate_game(bigint, char)               to authenticated;
+grant  execute on function private.rate_game(bigint, char, numeric)      to authenticated;
+grant  execute on function private.mov_multiplier(int, int)              to authenticated;
 
 
 -- =====================================================================
