@@ -19,6 +19,7 @@ export function initialState(configured = true) {
     nextCourtNo: 1,
     partnerHist: new Map(), // pairKey  -> weighted times partnered
     matchHist: new Map(),   // matchKey -> weighted times played
+    meetHist: new Map(),    // pairKey  -> weighted times on the same court (partners or opponents)
     recentMatches: [],      // matchKeys of today's finished games, oldest first
     lastPartner: new Map(), // playerId -> partner in their latest finished game today
     log: [],                // today's finished games, oldest first

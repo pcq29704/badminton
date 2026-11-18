@@ -6,6 +6,11 @@ export function recordHistory(state, teamA, teamB, weight) {
   inc(state.partnerHist, pairKey(teamA[0], teamA[1]), weight);
   inc(state.partnerHist, pairKey(teamB[0], teamB[1]), weight);
   inc(state.matchHist, matchKey(teamA, teamB), weight);
+  // every pair on the court met, as partners or opponents
+  const four = [...teamA, ...teamB];
+  if (!state.meetHist) state.meetHist = new Map();
+  for (let i = 0; i < 4; i++)
+    for (let j = i + 1; j < 4; j++) inc(state.meetHist, pairKey(four[i], four[j]), weight);
 }
 export function recordToday(state, teamA, teamB) {
   recordHistory(state, teamA, teamB, 1);

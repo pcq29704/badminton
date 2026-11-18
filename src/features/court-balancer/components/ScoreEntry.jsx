@@ -1,5 +1,5 @@
 import { playerInfo } from "./Shared";
-import { CAP_POINTS, eloChanges, formatDelta, kFor, parseScore, resultLabel, scoreProblem } from "../scoring.mjs";
+import { eloChanges, formatDelta, kFor, parseScore, resultLabel, scoreProblem } from "../scoring.mjs";
 
 // The typed score for a game: numbers (null if not a whole number), why it can't be saved yet,
 // and which side is ahead (for the green highlight).
@@ -18,7 +18,6 @@ export const winnerFirst = (a, b) => `${Math.max(a, b)}–${Math.min(a, b)}`;
 // Two number boxes (team A, team B) and a line that explains an invalid score
 export function ScoreInputs({ state, actions, gameId, names }) {
   const s = readScore(state, gameId);
-  const cap = state.settings?.cap_points ?? CAP_POINTS;
   const box = (side, label) => <input
     className={`cb-input cb-org-score${s.leader === side ? " leading" : ""}`}
     type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" maxLength={3} placeholder="–"
@@ -28,7 +27,7 @@ export function ScoreInputs({ state, actions, gameId, names }) {
   return <>
     <div className="cb-org-score-row">{box("A", names[0])}<span className="cb-org-score-dash" aria-hidden="true">–</span>{box("B", names[1])}</div>
     <p className={`cb-org-score-msg${s.problem ? " bad" : ""}`} aria-live="polite">
-      {s.problem || (s.empty ? `Enter each team's final score (0–${cap})` : resultLabel(s.a, s.b))}
+      {s.problem}
     </p>
   </>;
 }
