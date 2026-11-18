@@ -18,7 +18,7 @@ export default function CourtBalancer() {
   const signedIn = state.phase === "setup" || state.phase === "play";
   return <div className="cb-root">
     <TopNav current="courts" viewer={signedIn ? ORGANISER : undefined} onSignOut={actions?.signOut} />
-    <main className={`cb-page cb-org${state.phase === "play" ? " wide" : ""}${state.busy ? " busy" : ""}`}>
+    <main className={`cb-page cb-org${state.phase === "play" ? " wide play" : ""}${state.busy ? " busy" : ""}`}>
       {state.phase === "configuration" ? <><Header subtitle="Court Balancer" /><ConfigurationMessage /></>
         : state.phase === "setup" ? <SetupScreen state={state} actions={actions} />
         : state.phase === "play" ? <PlayScreen state={state} actions={actions} />

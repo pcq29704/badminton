@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { HELP } from "../help";
 import { STREAK_MIN, signed, streakIcon } from "../helpers";
@@ -98,4 +98,36 @@ export function PlayerForm({ state, actions, duringPlay = false }) {
     {!duringPlay && <p className="cb-note">{tiers.map((tier, index) =>
       <Fragment key={tier.code}>{index > 0 && " · "}<b>{tier.code}</b> starts at {tier.seed_elo}</Fragment>)}. Pick once — after that the rating updates itself.</p>}
   </form>;
+}
+
+// A panel (help, players, stats, log) opened over the play screen, so the courts never move.
+// Same frame as the score sheet; the panel scrolls inside when it is long.
+export function PanelSheet({ label, onClose, children }) {
+  const ref = useRef(null);
+  useEffect(() => { ref.current?.focus(); }, []);
+  return <div className="cb-org-sheet-backdrop" onClick={onClose}>
+    <section ref={ref} tabIndex={-1} className="cb-org-sheet panel" role="dialog" aria-modal="true" aria-label={label}
+      onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Escape") onClose(); }}>
+      <button className="cb-org-toast-x" onClick={onClose} aria-label="Close">×</button>
+      {children}
+    </section>
+  </div>;
+}
+
+// "More" button with a short list of less frequent actions. Closes on pick, outside tap or Escape.
+export function MoreMenu({ items, label = "More", ariaLabel, className = "", summaryClass = "cb-btn quiet mini" }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const close = (event) => { if (ref.current?.open && !ref.current.contains(event.target)) ref.current.open = false; };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+  const pick = (onClick) => () => { ref.current.open = false; onClick(); };
+  return <details ref={ref} className={`cb-org-menu ${className}`.trim()} onKeyDown={(event) => {
+    if (event.key === "Escape" && ref.current.open) { ref.current.open = false; ref.current.querySelector("summary").focus(); }
+  }}>
+    <summary className={summaryClass} aria-label={ariaLabel}>{label}</summary>
+    <div className="cb-org-menu-list">{items.filter(Boolean).map(({ label, onClick, danger }) =>
+      <button key={label} className={`cb-btn quiet mini${danger ? " cb-org-danger" : ""}`} onClick={pick(onClick)}>{label}</button>)}</div>
+  </details>;
 }

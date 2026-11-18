@@ -9,7 +9,8 @@ export const HELP = {
         "<b>Courts</b> — how many courts you booked. Then tap <b>Start play day</b>."
       ]],
       ["Playing a game", [
-        "Each court shows two teams either side of the dashed net. When the game ends, type each team's final score in the box under it (games go to 21; at 20-all a team needs a 2-point lead, up to 30). The team ahead turns green, so swapped scores are easy to spot. Tap <b>Finish</b>, check the result in words, then tap <b>Confirm</b>.",
+        "Each court shows the two teams left and right, with two score boxes between them. When the game ends, type each team's final score in the box on its side (games go to 21; at 20-all a team needs a 2-point lead, up to 30). The team ahead turns green, so swapped scores are easy to spot. Tap <b>Finish</b>, check the result in words, then tap <b>Confirm</b>.",
+        "With a keyboard: <b>Enter</b> moves from the first box to the second, and <b>Enter</b> again opens the result to confirm. <b>↑</b> and <b>↓</b> move to the court above or below. After you confirm, the cursor goes to the next court that needs a score. <b>Esc</b> closes the result without saving.",
         "New matches are unranked by default. Use the ranked toggle to make future matches ranked; matches already on court keep their mode.",
         "Ranked results update ratings. Unranked results record the score without changing ratings. Typed the wrong score? Tap <b>Wrong score? Edit</b> in the pop-up. This works until one of those four players finishes another game.",
         "If other courts are still playing, the finished court shows <b>⏳ Holding</b> for up to 10 minutes, waiting until every court has finished. Then all courts are filled together from the full pool, so games stay fresh and fair. <b>▶ Fill now</b> skips the wait.",
@@ -24,7 +25,7 @@ export const HELP = {
       ]],
       ["Win streaks", [
         "Win 3 or more games in a row and a badge appears next to your name: <b>⭐</b> 3 wins, <b>🔥</b> 4 wins, <b>👑</b> 5+ wins.",
-        "Everyone on a streak is listed in the <b>On a streak</b> banner at the top until they lose a game."
+        "The badge stays next to their name, on court and on the bench, until they lose a game."
       ]],
       ["Ratings and tiers", [
         "Everyone has an Elo rating. Only ranked results change it: winners gain points and losers lose them. Both players on a team get the same change.",
@@ -54,7 +55,8 @@ export const HELP = {
         "<b>Courts</b> — số sân đã đặt. Sau đó bấm <b>Start play day</b>."
       ]],
       ["Khi chơi", [
-        "Mỗi sân hiển thị hai đội ở hai bên lưới. Khi trận kết thúc, nhập điểm cuối của mỗi đội vào ô bên dưới đội đó (trận đến 21 điểm; nếu hoà 20-20 thì phải hơn 2 điểm, tối đa 30). Đội đang hơn điểm sẽ chuyển màu xanh để dễ thấy nếu nhập ngược. Bấm <b>Finish</b>, kiểm tra kết quả, rồi bấm <b>Confirm</b>.",
+        "Mỗi sân hiển thị hai đội ở bên trái và bên phải, hai ô điểm ở giữa. Khi trận kết thúc, nhập điểm cuối của mỗi đội vào ô phía bên đội đó (trận đến 21 điểm; nếu hoà 20-20 thì phải hơn 2 điểm, tối đa 30). Đội đang hơn điểm sẽ chuyển màu xanh để dễ thấy nếu nhập ngược. Bấm <b>Finish</b>, kiểm tra kết quả, rồi bấm <b>Confirm</b>.",
+        "Dùng bàn phím: <b>Enter</b> chuyển từ ô đầu sang ô thứ hai, <b>Enter</b> lần nữa mở kết quả để xác nhận. <b>↑</b> và <b>↓</b> chuyển sang sân trên hoặc dưới. Sau khi xác nhận, con trỏ tới sân tiếp theo cần nhập điểm. <b>Esc</b> đóng kết quả mà không lưu.",
         "Trận mới mặc định không tính điểm. Bật nút Ranked để các trận tạo sau đó được tính điểm; trận đang trên sân giữ nguyên chế độ.",
         "Trận Ranked cập nhật điểm. Trận Unranked chỉ lưu tỉ số, không đổi điểm. Nhập sai tỉ số? Bấm <b>Wrong score? Edit</b> trong thông báo. Chỉ sửa được khi chưa ai trong bốn người đó đánh xong trận khác.",
         "Nếu các sân khác vẫn đang chơi, sân vừa xong sẽ hiện <b>⏳ Holding</b> tối đa 10 phút, đợi cho tới khi tất cả các sân đều xong. Khi đó mọi sân được xếp trận cùng lúc từ toàn bộ người chơi, để trận mới và công bằng hơn. <b>▶ Fill now</b> để xếp ngay.",
@@ -69,7 +71,7 @@ export const HELP = {
       ]],
       ["Chuỗi thắng", [
         "Thắng 3 trận liên tiếp trở lên sẽ có huy hiệu cạnh tên: <b>⭐</b> 3 trận, <b>🔥</b> 4 trận, <b>👑</b> 5 trận trở lên.",
-        "Những người đang có chuỗi thắng hiện ở khung <b>On a streak</b> phía trên cho tới khi thua một trận."
+        "Huy hiệu ở cạnh tên, trên sân và ở hàng chờ, cho tới khi thua một trận."
       ]],
       ["Điểm Elo và tier", [
         "Mỗi người có điểm Elo. Chỉ trận Ranked mới đổi điểm: thắng được cộng, thua bị trừ. Hai người cùng đội nhận cùng mức thay đổi.",

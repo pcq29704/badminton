@@ -15,21 +15,34 @@ export function readScore(state, gameId) {
 const teamNames = (team) => team.map((p) => p.name).join(" & ");
 export const winnerFirst = (a, b) => `${Math.max(a, b)}–${Math.min(a, b)}`;
 
-// Two number boxes (team A, team B) and a line that explains an invalid score
-export function ScoreInputs({ state, actions, gameId, names }) {
+// Two number boxes (team A, team B). On a court, courtNo tags them so the keyboard can move
+// between boxes, courts and the Finish button (see PlayScreen).
+export function ScoreBoxes({ state, actions, gameId, names, courtNo }) {
   const s = readScore(state, gameId);
-  const cap = state.settings?.cap_points ?? CAP_POINTS;
   const box = (side, label) => <input
     className={`cb-input cb-org-score${s.leader === side ? " leading" : ""}`}
     type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" maxLength={3} placeholder="–"
+    enterKeyHint={side === "A" ? "next" : "done"}
+    data-court={courtNo} data-score={courtNo != null ? side.toLowerCase() : undefined}
     aria-label={`Score for ${label}`} aria-invalid={Boolean(s.problem)}
     value={s.draft[side.toLowerCase()]}
+    onFocus={(event) => event.target.select()}
     onChange={(event) => actions.setScore(gameId, side.toLowerCase(), event.target.value)} />;
+  return <div className="cb-org-score-row">{box("A", names[0])}<span className="cb-org-score-dash" aria-hidden="true">–</span>{box("B", names[1])}</div>;
+}
+
+// The line under the boxes. `quiet` (on a court) shows only a problem, to keep the card short.
+export function ScoreMessage({ state, gameId, quiet = false }) {
+  const s = readScore(state, gameId);
+  const cap = state.settings?.cap_points ?? CAP_POINTS;
+  const text = s.problem || (quiet ? "" : s.empty ? `Enter each team's final score (0–${cap})` : resultLabel(s.a, s.b));
+  return <p className={`cb-org-score-msg${s.problem ? " bad" : ""}${quiet ? " quiet" : ""}`} aria-live="polite">{text}</p>;
+}
+
+export function ScoreInputs({ state, actions, gameId, names }) {
   return <>
-    <div className="cb-org-score-row">{box("A", names[0])}<span className="cb-org-score-dash" aria-hidden="true">–</span>{box("B", names[1])}</div>
-    <p className={`cb-org-score-msg${s.problem ? " bad" : ""}`} aria-live="polite">
-      {s.problem || (s.empty ? `Enter each team's final score (0–${cap})` : resultLabel(s.a, s.b))}
-    </p>
+    <ScoreBoxes state={state} actions={actions} gameId={gameId} names={names} />
+    <ScoreMessage state={state} gameId={gameId} />
   </>;
 }
 
