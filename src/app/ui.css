@@ -346,6 +346,8 @@ a.cb-match-player:hover span { text-decoration: underline; text-underline-offset
 .cb-navlink[aria-current="page"] { color: var(--cb-gold-hi); }
 .cb-navlink[aria-current="page"]::after { content: ""; position: absolute; left: 50%; bottom: 4px; width: 7px; height: 7px; background: var(--cb-gold); transform: translateX(-50%) rotate(45deg); }
 .cb-navlink:focus-visible, .cb-brand:focus-visible { outline: 2px solid var(--cb-gold-hi); outline-offset: -2px; }
+/* small Beta tag after a nav link (Stadium) */
+.cb-nav-beta { margin-left: 6px; padding: 2px 4px 1px; border: 1px solid var(--cb-line); color: var(--cb-gold); font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: .08em; }
 
 /* ---------- touch and motion ---------- */
 /* ---------- sign-in ---------- */
@@ -673,7 +675,10 @@ input.cb-input.cb-org-score.leading { border-color: var(--cb-win); background: r
   .cb-brand-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .cb-navlink-extra { display: none; }
   .cb-brand img { width: 30px; height: 30px; }
-  .cb-navlink { padding: 0 7px; font-size: 11px; letter-spacing: .04em; }
+  .cb-nav { padding-inline: 8px; }
+  .cb-navlink { padding: 0 4px; font-size: 11px; letter-spacing: .02em; }
+  /* on phones the Beta tag sits above the word, so every nav link still fits at 375px */
+  .cb-nav-beta { position: absolute; top: 3px; right: 1px; margin: 0; padding: 1px 2px 0; font-size: 7px; letter-spacing: .04em; }
   /* three tabs fit a 375px phone without scrolling */
   .cb-tabs { gap: 0; }
   .cb-tab { padding: 0 10px; font-size: 18px; }
@@ -693,6 +698,6 @@ input.cb-input.cb-org-score.leading { border-color: var(--cb-win); background: r
 @media (max-width: 360px) {
   .cb-bar-labels span:nth-child(even) { visibility: hidden; }
   .cb-hero-name { font-size: 34px; }
-  .cb-navlink { padding: 0 6px; font-size: 11px; }
+  .cb-navlink { padding: 0 3px; font-size: 10.5px; }
   .cb-brand img { width: 28px; height: 28px; }
 }
