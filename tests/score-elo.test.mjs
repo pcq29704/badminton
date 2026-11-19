@@ -90,3 +90,14 @@ test('result labels and formatting are display only', () => {
   assert.equal(formatDelta(13.29), '+13.3');
   assert.equal(formatDelta(-7.51), '−7.5');
 });
+
+test('eloChange is the stored after minus before, or null without both ratings', async () => {
+  const { eloChange, formatDelta } = await import('../src/features/court-balancer/scoring.mjs');
+  assert.equal(eloChange(1200, 1213.34), 13.34);
+  assert.equal(eloChange('1200.00', '1186.50'), -13.5);
+  assert.equal(eloChange(1200, null), null);
+  assert.equal(eloChange(null, null), null);
+  assert.equal(formatDelta(13.34), '+13.3');
+  assert.equal(formatDelta(-13.5), '−13.5');
+  assert.equal(formatDelta(0), '±0.0');
+});

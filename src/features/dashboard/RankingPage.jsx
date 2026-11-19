@@ -9,7 +9,7 @@ import PlayerRanking from "./PlayerRanking";
 
 export default function RankingPage() {
   const { loading, viewer, ranking, error, signOut } = useClubGames();
-  const shell = { current: "ranking", viewer, onSignOut: signOut, page: "cb-page" };
+  const shell = { current: "ranking", viewer, onSignOut: signOut, page: "cb-page cb-narrow" };
 
   if (!hasSupabaseConfig) return <Shell {...shell}><ConfigurationMessage /></Shell>;
   if (error) return <Shell {...shell}><Notice tone="error">{error}</Notice></Shell>;

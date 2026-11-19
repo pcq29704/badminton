@@ -1,3 +1,5 @@
+import { eloChange } from '../../features/court-balancer/scoring.mjs';
+
 export function usernameFromName(name) {
   const slug = String(name ?? '').trim().toLowerCase()
     .replace(/[^a-z0-9._-]+/g, '-')
@@ -37,6 +39,13 @@ export function imageExtension(contentType, size, bytes) {
   return contentType === 'image/jpeg' ? 'jpg' : contentType.slice('image/'.length);
 }
 
+// One player in a profile game. elo_before / elo_after are that player's rating around the game (null for old games).
+// elo_change is what the game won or lost them: null for old games and for unranked games (ratings unchanged).
+const historyPlayer = (ranked) => ({ name, username, tier, profile_image_path, elo_before, elo_after }) => ({
+  name, username, tier, profile_image_path, elo_before: elo_before ?? null, elo_after: elo_after ?? null,
+  elo_change: ranked === false ? null : eloChange(elo_before, elo_after),
+});
+
 export function profileResponse(player, history) {
   return {
     name: player.name,
@@ -51,8 +60,9 @@ export function profileResponse(player, history) {
       winner: game.winner,
       score_a: game.score_a ?? null,
       score_b: game.score_b ?? null,
-      team_a: game.team_a.map(({ name, username, tier, profile_image_path }) => ({ name, username, tier, profile_image_path })),
-      team_b: game.team_b.map(({ name, username, tier, profile_image_path }) => ({ name, username, tier, profile_image_path })),
+      ranked: game.ranked ?? null,
+      team_a: game.team_a.map(historyPlayer(game.ranked)),
+      team_b: game.team_b.map(historyPlayer(game.ranked)),
     })),
   };
 }
@@ -61,7 +71,12 @@ export function profileResponse(player, history) {
 export function gamesResponse(rows) {
   return (rows || []).filter((game) => game.ended_at).map((game) => {
     const side = (team) => (game.game_players || []).filter((row) => row.team === team)
-      .map((row) => ({ name: row.players?.name || 'Player', username: row.players?.username || '' }));
+      .map((row) => ({
+        name: row.players?.name || 'Player',
+        username: row.players?.username || '',
+        // Only the change is shared, not the player's rating. Unranked games change nothing.
+        elo_change: game.ranked ? eloChange(row.elo_before, row.elo_after) : null,
+      }));
     const court = Array.isArray(game.courts) ? game.courts[0] : game.courts;
     return {
       id: game.id,

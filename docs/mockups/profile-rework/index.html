@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile Rework Draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&family=Cormorant+SC:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Emerald Crown Ranked tokens (copied from src/app/ui.css and DESIGN.md) ===== */
+:root {
+  --cb-ground: #061712; --cb-card: #0a1f18; --cb-card-top: #0f2c22; --cb-raised: #133527;
+  --cb-ink: #f2ecdc; --cb-muted: #a9bdb2; --cb-faint: #7f978b;
+  --cb-gold: #e2bd62; --cb-gold-hi: #f5dc98; --cb-gold-pale: #fff1c4; --cb-gold-shade: #b98a2c; --cb-on-gold: #1f1806;
+  --cb-win: #52dc9e; --cb-on-win: #03170e; --cb-loss: #e7a3ad; --cb-loss-fill: #2a3d36; --cb-track: #24382f;
+  --cb-line: rgb(226 189 98 / .5); --cb-line-inner: rgb(226 189 98 / .18); --cb-line-soft: rgb(226 189 98 / .12);
+  --cb-g-gold: linear-gradient(180deg, #f6dc95, #d6a845 60%, var(--cb-gold-shade));
+  --cb-display: "Cormorant SC", Georgia, serif;
+  --cb-body: "Be Vietnam Pro", system-ui, sans-serif;
+  --cb-ease: cubic-bezier(.16, 1, .3, 1);
+}
+[data-tier="S"] { --t-hi: #d4c6ff; --t-main: #8a63ff; --t-deep: #26134f; --t-gem: #3fd88f; }
+[data-tier="A"] { --t-hi: #f5dc98; --t-main: #d6a845; --t-deep: #3a2a08; --t-gem: #3fd88f; }
+[data-tier="B"] { --t-hi: #d8f1f3; --t-main: #86c3cb; --t-deep: #12323a; --t-gem: #46d4e2; }
+[data-tier="C"] { --t-hi: #f2c39c; --t-main: #c27c4a; --t-deep: #2f1b0e; --t-gem: #5aa8ff; }
+[data-tier="D"] { --t-hi: #dcb391; --t-main: #9a6a48; --t-deep: #281a10; --t-gem: #cfa275; }
+
+* { box-sizing: border-box; }
+html { background: #030c09; }
+body { margin: 0; color: var(--cb-ink); font-family: var(--cb-body); font-size: 15px; line-height: 1.5; background: #030c09; }
+::selection { background: var(--cb-gold); color: var(--cb-on-gold); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--cb-gold-hi); outline-offset: 3px; }
+* { scrollbar-width: thin; scrollbar-color: rgb(226 189 98 / .35) transparent; }
+h1, h2, h3, p, ol, ul, dl, dd { margin: 0; padding: 0; }
+
+/* ===== review sheet (not part of the design; only frames the two drafts) ===== */
+.sheet { max-width: 1440px; margin: 0 auto; padding: 28px 24px 64px; }
+.sheet-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 32px; margin-bottom: 28px; }
+.sheet-head h1 { font-family: var(--cb-display); font-size: 40px; font-weight: 700; line-height: 1; }
+.sheet-head p { max-width: 60ch; margin-top: 8px; color: var(--cb-muted); }
+.tierpick { display: flex; align-items: center; gap: 6px; }
+.tierpick > span { margin-right: 8px; color: var(--cb-muted); font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.tierpick button { min-width: 44px; height: 40px; border: 1px solid var(--cb-line); background: transparent; color: var(--cb-muted); font-family: var(--cb-display); font-size: 20px; font-weight: 700; cursor: pointer; }
+.tierpick button[aria-pressed="true"] { background: var(--cb-gold); color: var(--cb-on-gold); border-color: var(--cb-gold); }
+.stage-label { display: flex; align-items: baseline; gap: 12px; margin: 36px 0 12px; font-family: var(--cb-display); font-size: 26px; font-weight: 700; }
+.stage-label small { font-family: var(--cb-body); font-size: 13px; font-weight: 400; color: var(--cb-muted); }
+.lap-wrap { overflow: hidden; border: 1px solid rgb(255 255 255 / .12); background: #111; border-radius: 10px; }
+.lap-bar { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; background: #1b1d1c; }
+.lap-bar i { width: 11px; height: 11px; border-radius: 50%; background: #444; }
+.lap-bar span { margin-left: 12px; padding: 6px 16px; border-radius: 6px; background: #0e100f; color: #8b9a92; font-size: 12px; }
+.lap-zoom { width: 1280px; transform-origin: top left; }
+.phone-row { display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; }
+.phone { width: 414px; padding: 12px; border: 1px solid rgb(255 255 255 / .18); border-radius: 46px; background: #0b0d0c; }
+.phone-in { position: relative; width: 390px; height: 800px; overflow: hidden; border-radius: 36px; background: var(--cb-ground); }
+.phone-status { display: flex; justify-content: space-between; height: 30px; padding: 8px 24px 0; background: #04110c; color: var(--cb-muted); font-size: 12px; font-weight: 600; }
+.phone-scroll { height: 770px; overflow-y: auto; overscroll-behavior: contain; }
+.notes { flex: 1 1 320px; max-width: 520px; color: var(--cb-muted); }
+.notes h2 { font-family: var(--cb-display); font-size: 22px; font-weight: 700; color: var(--cb-ink); margin-bottom: 8px; }
+.notes ul { padding-left: 18px; display: grid; gap: 8px; }
+
+/* ===== the profile page itself ===== */
+.screen { container: scr / inline-size; position: relative; color: var(--cb-ink); font-variant-numeric: tabular-nums; caret-color: var(--cb-gold);
+  background: linear-gradient(rgba(6, 23, 18, .72), rgba(6, 23, 18, .72)), url("assets/brand/app-bg.jpg") center / cover no-repeat, var(--cb-ground); }
+.pf { min-height: 100%; }
+.pf button { cursor: pointer; }
+
+/* nav (existing component, abridged) */
+.nav { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 4px; height: 64px; padding: 0 24px; background: #04110c; }
+.nav::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--cb-gold) 50%, transparent); opacity: .55; }
+.nav-brand { display: flex; align-items: center; gap: 10px; margin-right: 20px; font-family: var(--cb-display); font-size: 22px; font-weight: 700; color: var(--cb-gold-hi); }
+.nav-brand img { width: 34px; height: 34px; }
+.nav a { padding: 8px 12px; color: var(--cb-muted); font-size: 14px; font-weight: 600; text-decoration: none; }
+.nav a[aria-current] { color: var(--cb-gold-hi); }
+.nav-menu { display: none; margin-left: auto; width: 44px; height: 44px; border: 0; background: transparent; color: var(--cb-gold-hi); }
+
+/* shared bits */
+.label { color: var(--cb-muted); font-size: 12px; font-weight: 600; line-height: 1.3; letter-spacing: .14em; text-transform: uppercase; }
+.rule { display: flex; align-items: center; gap: 8px; width: 160px; max-width: 100%; }
+.rule::before, .rule::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--cb-gold)); }
+.rule::after { background: linear-gradient(90deg, var(--cb-gold), transparent); }
+.rule i { width: 6px; height: 6px; background: var(--cb-gold); transform: rotate(45deg); }
+.card { position: relative; min-width: 0; padding: 26px 30px 22px; border: 1px solid var(--cb-line); background: linear-gradient(180deg, var(--cb-card-top), var(--cb-card)); }
+.card::before { content: ""; position: absolute; inset: 5px; border: 1px solid var(--cb-line-inner); pointer-events: none; }
+.corner { position: absolute; z-index: 1; width: 22px; height: 22px; pointer-events: none; }
+.corner::before { content: ""; position: absolute; inset: 0; border-top: 2px solid var(--cb-gold); border-left: 2px solid var(--cb-gold); }
+.corner::after { content: ""; position: absolute; top: 6px; left: 6px; width: 6px; height: 6px; background: var(--cb-gold); transform: rotate(45deg); }
+.corner.tl { top: -1px; left: -1px; } .corner.tr { top: -1px; right: -1px; transform: scaleX(-1); }
+.corner.bl { bottom: -1px; left: -1px; transform: scaleY(-1); } .corner.br { bottom: -1px; right: -1px; transform: scale(-1, -1); }
+.card-head { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 16px; text-align: center; }
+.card-title { font-family: var(--cb-display); font-size: 26px; font-weight: 700; line-height: 1.1; }
+.note { color: var(--cb-muted); font-size: 13px; line-height: 1.45; }
+.btn { display: inline-flex; align-items: center; justify-content: center; height: 46px; padding: 0 22px; border: 0; background: var(--cb-g-gold); color: var(--cb-on-gold); font-family: var(--cb-display); font-size: 19px; font-weight: 700; }
+.btn.quiet { background: var(--cb-raised); color: var(--cb-ink); }
+.btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn.mini { height: 40px; padding: 0 16px; font-size: 17px; }
+
+/* avatar: photo disc inside the tier frame (same geometry as .cb-pavatar) */
+.pav { position: relative; display: inline-block; width: var(--s, 56px); height: var(--s, 56px); flex: none; }
+.pav b { position: absolute; inset: 21%; display: grid; place-items: center; border-radius: 9999px; background: radial-gradient(circle at 35% 30%, var(--cb-raised), var(--cb-card)); color: var(--cb-gold-hi); font-family: var(--cb-display); font-size: calc(var(--s, 56px) * .3); font-weight: 700; }
+.pav img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* tabs (existing component) */
+.tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid rgb(226 189 98 / .22); overflow-x: auto; scrollbar-width: none; background: rgba(4, 17, 12, .55); }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { position: relative; height: 52px; padding: 0 20px; border: 0; background: transparent; color: var(--cb-muted); font-family: var(--cb-display); font-size: 22px; font-weight: 700; white-space: nowrap; }
+.tab:hover { color: var(--cb-ink); }
+.tab[aria-selected="true"] { color: var(--cb-gold-hi); }
+.tab[aria-selected="true"]::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: -1px; height: 2px; background: linear-gradient(90deg, transparent, var(--cb-gold), transparent); }
+.tab[aria-selected="true"]::before { content: ""; position: absolute; left: 50%; bottom: -5px; width: 9px; height: 9px; background: var(--t-gem); transform: translateX(-50%) rotate(45deg); box-shadow: 0 0 0 2px var(--cb-ground); }
+.tab .short { display: none; }
+
+/* ----- body: left rail + right column (laptop) ----- */
+.body { display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 32px; max-width: 1280px; margin: 0 auto; padding: 28px 24px 64px; align-items: start; }
+.rail-wrap { position: sticky; top: 92px; filter: drop-shadow(0 14px 22px rgb(0 0 0 / .5)); }
+.rail, .rail-in { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 64px), 50% 100%, 0 calc(100% - 64px)); }
+.rail { padding: 1px; background: linear-gradient(180deg, var(--cb-gold), rgb(226 189 98 / .35)); }
+.rail-in { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 34px 22px 92px; text-align: center;
+  background: radial-gradient(260px 220px at 50% 18%, color-mix(in srgb, var(--t-main) 30%, transparent), transparent 70%), linear-gradient(180deg, var(--cb-card-top), var(--cb-card)); }
+.rail .pav { margin: -6px 0 -2px; }
+.rail-name { font-family: var(--cb-display); font-size: 36px; font-weight: 700; line-height: 1; text-wrap: balance; overflow-wrap: anywhere; }
+.rail-user { color: var(--cb-muted); font-size: 14px; }
+.rail-facts { display: grid; gap: 2px; margin-top: 6px; }
+.rail-facts b { font-weight: 600; color: var(--cb-ink); }
+.rail-edit { margin-top: 10px; } .pen { display: none; }
+
+.main { display: grid; gap: 24px; min-width: 0; }
+
+/* stage = rank crest + showcase row */
+.stage { position: relative; padding: 0; overflow: hidden; }
+.stage-art { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: center; gap: 16px; padding: 36px 48px 28px;
+  background:
+    radial-gradient(420px 320px at 78% 50%, color-mix(in srgb, var(--t-main) 38%, transparent), transparent 70%),
+    linear-gradient(180deg, transparent 60%, rgb(4 17 12 / .65)); }
+.court { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--cb-gold); opacity: .09; pointer-events: none; }
+.stage-gem { position: absolute; top: -1px; left: 50%; z-index: 2; width: 14px; height: 14px; background: var(--t-gem); transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 0 3px var(--cb-ground), 0 0 0 4px var(--cb-gold); }
+.stage-text { position: relative; display: grid; gap: 10px; }
+.stage-rank { font-family: var(--cb-display); font-size: 56px; font-weight: 700; line-height: 1; color: var(--t-hi); text-wrap: balance; }
+.stage-tier { color: var(--cb-muted); }
+.stage-elo { display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
+.stage-elo b { font-size: 34px; font-weight: 700; line-height: 1; }
+.crest { position: relative; display: grid; place-items: center; height: 300px; }
+.crest::before { content: ""; position: absolute; inset: 14%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--t-main) 55%, transparent), transparent 70%); filter: blur(20px); }
+.crest img { position: relative; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 14px 18px rgb(0 0 0 / .5)); }
+.reveal .crest img { animation: crest-in 1.1s var(--cb-ease) both; }
+.reveal .crest::before { animation: halo-in 1.6s var(--cb-ease) both; }
+@keyframes crest-in { from { opacity: .35; transform: scale(.82) translateY(10px); filter: blur(6px) brightness(1.9); } 55% { filter: blur(0) brightness(1.35); } to { opacity: 1; transform: none; } }
+@keyframes halo-in { from { opacity: .2; transform: scale(.6); } 45% { opacity: 1; transform: scale(1.25); } to { opacity: .85; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .reveal .crest img, .reveal .crest::before { animation: none; } }
+
+.show { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--cb-line); background: rgb(4 17 12 / .55); }
+.slot { position: relative; display: grid; justify-items: center; gap: 4px; padding: 20px 12px 20px; text-align: center; }
+.slot + .slot::before { content: ""; position: absolute; left: 0; top: 18%; bottom: 18%; width: 1px; background: linear-gradient(180deg, transparent, rgb(226 189 98 / .4), transparent); }
+.slot + .slot::after { content: ""; position: absolute; left: -3px; top: 50%; width: 7px; height: 7px; background: var(--cb-gold); transform: translateY(-50%) rotate(45deg); }
+.med { position: relative; display: grid; place-items: center; width: 64px; height: 64px; margin: 6px 0 4px; color: var(--t-hi); clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: var(--cb-g-gold); }
+.med::before { content: ""; position: absolute; inset: 2px; clip-path: inherit; background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--t-main) 55%, var(--t-deep)), var(--t-deep)); }
+.med svg, .med .pav { position: relative; }
+.med svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.slot-val { font-size: 30px; font-weight: 700; line-height: 1.1; }
+.slot-val small { font-size: 16px; font-weight: 600; color: var(--cb-muted); }
+.slot-val.name { font-family: var(--cb-display); font-size: 28px; }
+
+/* overview cards */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.span2 { grid-column: 1 / -1; }
+.results { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; list-style: none; }
+.token { display: grid; place-items: center; width: 46px; height: 40px; font-size: 15px; font-weight: 700; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+.token.w { background: var(--cb-win); color: var(--cb-on-win); } .token.l { background: var(--cb-loss-fill); color: var(--cb-loss); }
+.results-sum { margin-top: 14px; text-align: center; color: var(--cb-muted); font-size: 13px; }
+.results-sum b { color: var(--cb-ink); }
+.bars { display: flex; align-items: flex-end; gap: 10px; height: 120px; }
+.bar { flex: 1; background: linear-gradient(180deg, var(--cb-gold-hi), var(--cb-gold-shade)); opacity: .6; }
+.bar.now { opacity: 1; background: linear-gradient(180deg, var(--t-hi), var(--t-main)); }
+.bar-labels { display: flex; gap: 10px; margin-top: 8px; color: var(--cb-faint); font-size: 12px; text-align: center; }
+.bar-labels span { flex: 1; } .bar-labels .now { color: var(--cb-ink); font-weight: 600; }
+.ledger { display: grid; gap: 4px; list-style: none; }
+.ledger li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 6px 0; }
+.ledger li + li { border-top: 1px solid var(--cb-line-soft); }
+.ledger .pav { --s: 48px; }
+.ledger-name { font-weight: 600; color: var(--cb-ink); text-decoration: none; }
+.ledger-bar { display: block; height: 4px; margin-top: 6px; background: var(--cb-track); }
+.ledger-bar i { display: block; height: 100%; background: var(--cb-win); }
+.ledger-rec { color: var(--cb-muted); font-size: 13px; text-align: right; white-space: nowrap; }
+.ledger-rec b { color: var(--cb-ink); }
+.more { display: none; justify-content: center; margin-top: 8px; }
+.more a { display: inline-flex; align-items: center; min-height: 44px; color: var(--cb-gold-hi); font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; text-decoration: none; }
+
+/* match history tab */
+.matches { list-style: none; }
+.match { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 16px; padding: 14px 0; }
+.match + .match { border-top: 1px solid var(--cb-line-soft); }
+.match .res b { display: block; font-family: var(--cb-display); font-size: 24px; line-height: 1; }
+.match.won .res b { color: var(--cb-win); } .match.lost .res b { color: var(--cb-loss); }
+.match .score { font-size: 22px; font-weight: 700; }
+.match .side { padding: 8px 12px; } .match .side.me { background: linear-gradient(90deg, rgb(226 189 98 / .14), transparent); }
+.chips { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; }
+.chip { height: 36px; padding: 0 14px; border: 1px solid var(--cb-line); background: transparent; color: var(--cb-muted); font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.chip[aria-pressed="true"] { background: var(--cb-gold); color: var(--cb-on-gold); }
+
+/* ===== mobile composition: container ≤ 720px ===== */
+@container scr (max-width: 720px) {
+  .nav { padding: 0 8px 0 16px; } .nav a { display: none; } .nav-brand { margin: 0; font-size: 20px; } .nav-menu { display: grid; place-items: center; }
+  .tabs { position: sticky; top: 64px; z-index: 9; padding: 0 8px; justify-content: space-between; background: rgb(4 17 12 / .94); }
+  .tab { flex: 1; padding: 0 8px; font-size: 20px; } .tab .long { display: none; } .tab .short { display: inline; }
+  .body { display: flex; flex-direction: column; gap: 16px; padding: 16px 16px 40px; }
+  /* the rail turns into a plain identity header: no pennant, no sticky */
+  .rail-wrap { position: static; filter: none; width: 100%; }
+  .rail, .rail-in { clip-path: none; }
+  .rail { border: 1px solid var(--cb-line); padding: 0; background: none; }
+  .rail-in { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; padding: 16px; text-align: left;
+    background: radial-gradient(220px 160px at 0% 50%, color-mix(in srgb, var(--t-main) 30%, transparent), transparent 70%), linear-gradient(180deg, var(--cb-card-top), var(--cb-card)); }
+  .rail { --rail-s: 96px; } .rail .pav { grid-row: 1 / span 3; margin: -4px; }
+  .rail-name { font-size: 28px; } .rail-user { font-size: 13px; }
+  .rail-facts { margin: 0; grid-column: 2; font-size: 12px; }
+  .rail-edit { grid-column: 3; grid-row: 1 / span 3; margin: 0; }
+  .rail-edit .btn { width: 44px; height: 44px; padding: 0; } .rail-edit .txt { display: none; } .pen { display: block; }
+  .rail-in { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .stage-art { grid-template-columns: minmax(0, 1fr) 132px; padding: 20px 16px 16px; gap: 4px; }
+  .stage-rank { font-size: 32px; } .stage-elo b { font-size: 30px; } .stage-elo { margin-top: 0; }
+  .crest { height: 132px; }
+  .show { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .slot { padding: 14px 8px; gap: 2px; } .slot .med { width: 48px; height: 48px; margin: 4px 0 2px; } .slot .med svg { width: 24px; height: 24px; } .slot-val { font-size: 26px; } .slot-val.name { font-size: 26px; }
+  .slot + .slot::before, .slot + .slot::after { display: none; }
+  .slot:nth-child(2n) { border-left: 1px solid var(--cb-line-soft); } .slot:nth-child(n+3) { border-top: 1px solid var(--cb-line-soft); }
+  .grid { grid-template-columns: 1fr; gap: 16px; }
+  .card { padding: 22px 18px 16px; }
+  .more { display: flex; }
+  .ledger li:nth-child(n+4) { display: none; }
+  .bars { height: 96px; gap: 6px; } .bar-labels { gap: 6px; }
+  .match { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; } .match .side:not(.me) { grid-column: 1 / -1; }
+  .match .side { padding: 0; } .match .side.me { background: none; }
+  .token { width: 38px; height: 34px; font-size: 13px; } .results { gap: 6px; }
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="sheet-head">
+    <div>
+      <h1>Profile rework, draft</h1>
+      <p>Static mockup, not production code. Same page, two compositions: laptop mirrors the LoL layout (left rail, rank stage, showcase row, cards); phone stacks it. Data is invented. Pick a tier to see the page re-colour.</p>
+    </div>
+    <div class="tierpick" role="group" aria-label="Preview tier"><span>Tier</span>
+      <button type="button" data-t="S" aria-pressed="true">S</button><button type="button" data-t="A" aria-pressed="false">A</button><button type="button" data-t="B" aria-pressed="false">B</button><button type="button" data-t="C" aria-pressed="false">C</button><button type="button" data-t="D" aria-pressed="false">D</button>
+    </div>
+  </div>
+
+  <div class="stage-label">Laptop <small>1280px wide, scaled to fit. Tabs work.</small></div>
+  <div class="lap-wrap"><div class="lap-bar"><i></i><i></i><i></i><span>courtbalancer / profile</span></div><div id="lapBox"><div class="lap-zoom" id="lapZoom"><div class="screen" id="lap"></div></div></div></div>
+
+  <div class="stage-label">Mobile web <small>390px wide. Scroll inside the phone.</small></div>
+  <div class="phone-row">
+    <div class="phone"><div class="phone-in"><div class="phone-status"><span>9:41</span><span>5G ▮▮▮</span></div><div class="phone-scroll"><div class="screen" id="mob"></div></div></div></div>
+    <div class="notes">
+      <h2>What changed from today</h2>
+      <ul>
+        <li><b>Laptop:</b> the old wide hero card splits in two. Identity moves to a sticky pennant rail on the left. Rank name, Elo and crest move to a stage on the right, with the stat strip under it as four medallions.</li>
+        <li><b>Mobile:</b> the pennant becomes a flat identity header, so name and photo are the first thing you see. The stage shrinks to one row. The four medallions become a 2×2 grid, not a swipe row, so nothing hides.</li>
+        <li><b>Tabs</b> stay under the identity on phone, sticky under the nav, with short labels.</li>
+        <li><b>Cards</b> keep today's content and order. Best partner moved up into the medallions. Partner and opponent lists show 3 rows on phone, with a "see all" link.</li>
+        <li><b>Not in the draft:</b> player search, level chip, achievement badges. We have no data for them.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+const RANKS = { D: "Ếch vồ hoa mướp", C: "Lính mới ôm sào", B: "Bác tiều đốn củi", A: "Ngư ông thả lưới", S: "Trạng nguyên múa vợt" };
+const ICON = {
+  rate: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+  games: '<svg viewBox="0 0 24 24"><path d="M12 3 4 6v5c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>',
+  streak: '<svg viewBox="0 0 24 24"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 1.8.8 2.6 1.8 2.6C10.5 8 11 5.5 12 3Z"/></svg>',
+};
+const people = {
+  me: { name: "Minh Hoàng", user: "minhhoang", init: "M" },
+  linh: { name: "Linh", init: "L", tier: "A" }, tuan: { name: "Tuấn", init: "T", tier: "B" }, hai: { name: "Hải", init: "H", tier: "B" },
+  phuc: { name: "Phúc", init: "P", tier: "S" }, nam: { name: "Nam", init: "N", tier: "C" }, khoa: { name: "Khoa", init: "K", tier: "D" },
+};
+const pav = (tier, init, size) => `<span class="pav" style="--s:${size}px"><b>${init}</b><img src="assets/profile-frames/frame-${tier.toLowerCase()}.png" alt=""></span>`;
+const ledger = (rows) => `<ul class="ledger">${rows.map(([p, w, l]) => { const g = w + l; return `<li>${pav(p.tier, p.init, 48)}<div><a class="ledger-name">${p.name}</a><span class="ledger-bar"><i style="width:${Math.round(w / g * 100)}%"></i></span></div><span class="ledger-rec"><b>${w}–${l}</b> · ${g} games</span></li>`; }).join("")}</ul>`;
+const card = (title, note, body, cls = "", foot = "") => `<section class="card ${cls}"><div class="card-head"><h2 class="card-title">${title}</h2><p class="note">${note}</p></div>${body}${foot}</section>`;
+const more = `<div class="more"><a href="#" onclick="return false">See all</a></div>`;
+const form = [1,1,0,1,1,1,0,1,0,1], weekly = [3,5,2,6,8,4,7,9];
+const matches = [
+  ["won", "Won", "12 Nov, 20:41", "Minh · Linh", "21–17", "Phúc · Nam"], ["won", "Won", "12 Nov, 19:58", "Minh · Linh", "21–14", "Khoa · Hải"],
+  ["lost", "Lost", "5 Nov, 20:12", "Minh · Tuấn", "16–21", "Phúc · Linh"], ["won", "Won", "5 Nov, 19:30", "Minh · Hải", "21–19", "Nam · Khoa"],
+  ["lost", "Lost", "29 Oct, 20:05", "Minh · Linh", "18–21", "Phúc · Tuấn"],
+];
+
+function overview() {
+  return `<div class="grid">
+    ${card("Recent form", "Newest first", `<ol class="results">${form.map((w) => `<li class="token ${w ? "w" : "l"}">${w ? "W" : "L"}</li>`).join("")}</ol><p class="results-sum"><b>7 wins</b> in the last 10 games</p>`, "span2")}
+    ${card("Games per week", "Last 8 weeks", `<div class="bars">${weekly.map((n, i) => `<div class="bar${i === 7 ? " now" : ""}" style="height:${Math.max(4, n / 9 * 100)}%" title="${n} games"></div>`).join("")}</div><div class="bar-labels">${weekly.map((_, i) => `<span class="${i === 7 ? "now" : ""}">${i === 7 ? "Now" : "-" + (7 - i) + "w"}</span>`).join("")}</div>`, "span2")}
+    ${card("Top partners", "Most games together", ledger([[people.linh, 9, 3], [people.tuan, 6, 4], [people.hai, 5, 3], [people.nam, 4, 2]]), "", more)}
+    ${card("Most faced", "Most games against", ledger([[people.phuc, 3, 6], [people.nam, 4, 3], [people.khoa, 5, 1], [people.hai, 3, 2]]), "", more)}
+  </div>`;
+}
+function history() {
+  return card("Match history", "148 finished games", `<div class="chips" role="group" aria-label="Show games"><button class="chip" aria-pressed="true">All</button><button class="chip" aria-pressed="false">Won</button><button class="chip" aria-pressed="false">Lost</button></div><ol class="matches">${matches.map(([c, r, d, a, s, b]) => `<li class="match ${c}"><div class="res"><b>${r}</b><span class="note">${d}</span></div><div class="side me">${a}</div><div class="score">${s}</div><div class="side">${b}</div></li>`).join("")}</ol>`);
+}
+function settings() { return card("Settings", "Unchanged from today", `<p class="note" style="text-align:center">Photo, display name and password stay as they are now. Only the page around them changes.</p>`); }
+
+function render(el, tier, tab) {
+  const rank = RANKS[tier];
+  el.dataset.tier = tier; el.dataset.tab = tab;
+  el.innerHTML = `<div class="pf">
+    <nav class="nav"><span class="nav-brand"><img src="assets/brand/crown-shuttle-nav.png" alt="">Court Balancer</span><a>Dashboard</a><a>Ranking</a><a>Stadium</a><a aria-current="page">Profile</a>
+      <button class="nav-menu" aria-label="Menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></nav>
+    <div class="tabs" role="tablist" aria-label="Profile sections">${[["overview", "Overview", "Overview"], ["history", "Match history", "History"], ["settings", "Settings", "Settings"]].map(([id, long, short]) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${id === tab}"><span class="long">${long}</span><span class="short">${short}</span></button>`).join("")}</div>
+    <div class="body">
+      <aside class="rail-wrap" aria-label="Player"><div class="rail"><div class="rail-in">
+        <span class="pav" style="--s:var(--rail-s,190px)"><b>${people.me.init}</b><img src="assets/profile-frames/frame-${tier.toLowerCase()}.png" alt=""></span>
+        <h1 class="rail-name">${people.me.name}</h1><p class="rail-user">@${people.me.user}</p>
+        <p class="rail-facts note"><span>Last played <b>12 Nov</b></span></p>
+        <div class="rail-edit"><button class="btn quiet mini" aria-label="Edit profile"><span class="txt">Edit profile</span><svg class="pen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button></div>
+      </div></div></aside>
+      <main class="main">
+        <section class="card stage reveal" aria-label="Rank"><span class="corner tl"></span><span class="corner tr"></span><span class="stage-gem"></span>
+          <div class="stage-art">
+            <svg class="court" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice" fill="none" stroke="currentColor" stroke-width="2"><rect x="30" y="20" width="540" height="260"/><path d="M30 60h540M30 240h540M300 20v40M300 240v40M30 150h540M170 20v260M430 20v260"/></svg>
+            <div class="stage-text"><p class="label">Tier ${tier}</p><h2 class="stage-rank">${rank}</h2><span class="rule"><i></i></span><p class="stage-elo"><b>1,284</b><span class="label">Elo</span></p></div>
+            <div class="crest"><img src="assets/rank-badges/rank-${tier.toLowerCase()}.png" alt="Tier ${tier} badge"></div>
+          </div>
+          <div class="show">
+            <div class="slot"><span class="label">Win rate</span><span class="med">${ICON.rate}</span><span class="slot-val">62<small>%</small></span><span class="note">96 wins · 52 losses</span></div>
+            <div class="slot"><span class="label">Games</span><span class="med">${ICON.games}</span><span class="slot-val">148</span><span class="note">Last on 12 Nov</span></div>
+            <div class="slot"><span class="label">Win streak</span><span class="med">${ICON.streak}</span><span class="slot-val">4</span><span class="note">Best 9</span></div>
+            <div class="slot"><span class="label">Best partner</span><span class="med">${pav("A", "L", 56)}</span><span class="slot-val name">Linh</span><span class="note">9–3 · 75% together</span></div>
+          </div>
+          <span class="corner bl"></span><span class="corner br"></span>
+        </section>
+        ${tab === "overview" ? overview() : tab === "history" ? history() : settings()}
+      </main>
+    </div></div>`;
+  el.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => render(el, el.dataset.tier, b.dataset.tab)));
+  el.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => el.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === b)))));
+}
+let tier = "S";
+const lap = document.getElementById("lap"), mob = document.getElementById("mob");
+const all = () => { render(lap, tier, lap.dataset.tab || "overview"); render(mob, tier, mob.dataset.tab || "overview"); };
+all();
+document.querySelectorAll(".tierpick button").forEach((b) => b.addEventListener("click", () => { tier = b.dataset.t; document.querySelectorAll(".tierpick button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); all(); }));
+function fit() {
+  const box = document.getElementById("lapBox"), z = document.getElementById("lapZoom"), w = document.querySelector(".sheet").clientWidth - 50, s = Math.min(1, w / 1280);
+  z.style.transform = `scale(${s})`; box.style.height = z.offsetHeight * s + "px";
+  box.parentElement.style.width = Math.min(1282, 1280 * s + 2) + "px";
+}
+addEventListener("resize", fit); new ResizeObserver(fit).observe(document.getElementById("lapZoom")); fit();
+</script>
+</body>
+</html>

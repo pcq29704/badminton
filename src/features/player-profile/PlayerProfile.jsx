@@ -36,7 +36,6 @@ function ProfileHero({ profile, rank }) {
     </div>
     <div className="cb-crest">
       {rank && <div className="cb-crest-art"><img src={`/assets/rank-badges/rank-${rank.toLowerCase()}.png`} alt={`Tier ${rank} badge`} width="240" height="240" /></div>}
-      <p className="cb-crest-elo"><b>{profile.elo == null ? "–" : Math.round(profile.elo)}</b><span className="cb-label">Elo</span></p>
     </div>
   </Card>;
 }
@@ -44,6 +43,7 @@ function ProfileHero({ profile, rank }) {
 function summaryItems(profile, stats) {
   const played = stats?.played || 0;
   return [
+    { label: "Elo", value: profile.elo == null ? "–" : Math.round(profile.elo), note: profile.tier ? `Tier ${String(profile.tier).toUpperCase()}` : "Unrated" },
     played
       ? { label: "Win rate", value: stats.winRate, unit: "%", note: `${stats.wins} wins · ${stats.losses} losses` }
       : { label: "Win rate", value: "–", note: "No games yet" },
@@ -66,11 +66,11 @@ export default function PlayerProfile({ initialUsername = "" }) {
   const shell = { current: state.loggedIn ? "profile" : "", viewer, onSignOut: actions.signOut };
 
   if (!hasSupabaseConfig) return <Shell {...shell}><ConfigurationMessage /></Shell>;
-  if (!state.initialized) return <Shell {...shell} page="cb-page"><p className="cb-empty" role="status">Loading player profile…</p></Shell>;
+  if (!state.initialized) return <Shell {...shell} page="cb-page cb-narrow"><p className="cb-empty" role="status">Loading player profile…</p></Shell>;
   if (!state.username) return <AuthShell current="player" title="Open your profile." lead="Sign in to see your rating, results, and partners." cardTitle="Sign in to Court Balancer">
     <PlayerSignIn state={state} actions={actions} />
   </AuthShell>;
-  if (!profile) return <Shell {...shell} page="cb-page">
+  if (!profile) return <Shell {...shell} page="cb-page cb-narrow">
     {state.error ? <Notice tone="error">{state.error}</Notice> : <p className="cb-empty" role="status">Loading player profile…</p>}
     {state.error && <PlayerSignIn state={{ ...state, error: "" }} actions={actions} />}
   </Shell>;
@@ -83,13 +83,13 @@ export default function PlayerProfile({ initialUsername = "" }) {
     <Notice>{state.notice}</Notice>
     {state.loggedIn && <Notice tone="error">{state.error}</Notice>}
   </>;
-  return <Shell {...shell} page="cb-page cb-profile" pageProps={{ "data-tier": rank || undefined, "aria-busy": state.busy || undefined }}>
+  return <Shell {...shell} page="cb-page cb-narrow cb-profile" pageProps={{ "data-tier": rank || undefined, "aria-busy": state.busy || undefined }}>
     <ProfileHero profile={profile} rank={rank} />
     <StatStrip label="Summary" items={summaryItems(profile, stats)} />
     <Tabs tabs={tabs} active={active} onChange={setTab} label="Profile sections" idBase="profile" />
     {active !== "settings" && notices}
     <div {...tabPanelProps("profile", active)} className="cb-panel">
-      {active === "stats" && <ProfileStats stats={stats} />}
+      {active === "stats" && <ProfileStats stats={stats} profile={profile} />}
       {active === "games" && <ProfileHistory games={profile.history || []} username={profile.username} />}
       {active === "settings" && <ProfileSettings state={state} actions={actions} notices={notices} />}
     </div>

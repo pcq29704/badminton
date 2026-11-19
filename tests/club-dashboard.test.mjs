@@ -24,12 +24,22 @@ test('gamesResponse exposes only names, usernames, court and result', () => {
     id: 7, ended_at: '2026-10-20T10:00:00Z', winner: 'B', score_a: 15, score_b: 21, mov_multiplier: 1.107, ranked: true, status: 'finished', session_id: 3,
     courts: { court_no: 2 },
     game_players: [
-      { team: 'A', elo_before: 1200, players: { name: 'Ann', username: 'ann', password: 'x' } },
+      { team: 'A', elo_before: 1200, elo_after: 1186.3, players: { name: 'Ann', username: 'ann', password: 'x' } },
       { team: 'B', players: { name: 'Bob', username: null } },
     ],
   }, { id: 8, ended_at: null }]);
   assert.deepEqual(game, { id: 7, ended_at: '2026-10-20T10:00:00Z', winner: 'B', score_a: 15, score_b: 21, ranked: true, court_no: 2,
-    team_a: [{ name: 'Ann', username: 'ann' }], team_b: [{ name: 'Bob', username: '' }] });
+    team_a: [{ name: 'Ann', username: 'ann', elo_change: -13.7 }], team_b: [{ name: 'Bob', username: '', elo_change: null }] });
+});
+
+test('gamesResponse shares the Elo change but not the rating, and none for unranked games', () => {
+  const row = (ranked) => ({ id: 1, ended_at: '2026-10-20T10:00:00Z', winner: 'A', ranked, game_players: [
+    { team: 'A', elo_before: 1200, elo_after: 1200, players: { name: 'Ann', username: 'ann' } }] });
+  const [ranked] = gamesResponse([row(true)]);
+  const [unranked] = gamesResponse([row(false)]);
+  assert.equal(ranked.team_a[0].elo_change, 0);
+  assert.equal(unranked.team_a[0].elo_change, null);
+  assert.equal(JSON.stringify(ranked).includes('1200'), false);
 });
 
 test('old games without a score keep their winner and report no score', () => {

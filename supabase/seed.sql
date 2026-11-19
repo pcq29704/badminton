@@ -1,6 +1,6 @@
 -- Starting data for the shared dev database. Safe to run more than once.
--- Tier rules and settings are the standard ones; the 14 players are the dev
--- roster as it stood on 2026-10-17 (ratings and games played included).
+-- Tier rules and settings are the standard ones; the 23 players are a copy
+-- of the prod roster as it stood on 2026-11-19 (ratings and games played included).
 -- Passwords and profile images are left empty, and no sessions or games are
 -- created, so the first play day starts clean.
 begin;
@@ -30,20 +30,29 @@ on conflict (code) do update set
 alter table public.players disable trigger players_seed_elo;
 
 insert into public.players (name, username, tier, elo, games_total, active) values
-  ('Thắng',       'thang',       'A', 1457.73,  9, true),
-  ('Cún',         'cun',         'C', 1078.70,  9, true),
-  ('Hiếu',        'hieu',        'S', 1477.44,  8, true),
-  ('Khang',       'khang',       'A', 1364.74,  8, true),
-  ('Đức',         'duc',         'A', 1398.24, 10, true),
-  ('Quyền',       'quyen',       'B', 1312.14,  9, true),
-  ('Grace',       'grace',       'B', 1246.53,  8, true),
-  ('Ngọc RMIT',   'ngoc-rmit',   'C', 1119.88,  7, true),
-  ('Bee',         'bee',         'C', 1082.09,  7, true),
-  ('Lộc',         'loc',         'B', 1190.02,  9, true),
-  ('Vy',          'vy',          'B', 1228.53,  9, true),
-  ('Bích Phương', 'bich-phuong', 'C', 1123.31,  7, true),
-  ('Tâm',         'tam',         'B', 1188.49,  7, true),
-  ('Tân',         'tan',         'B', 1232.16,  9, true)
+  ('Quân',              'quan', 'S', 1510.79, 50, true),
+  ('Thanh',             'thanh', 'A', 1484.46, 21, true),
+  ('Lewis',             'a-l-c', 'A', 1442.02, 31, true),
+  ('๖ۣۜSói๖ۣۜCô๖ۣۜĐộc', 'thang', 'A', 1433.66, 69, true),
+  ('Khang',             'khang', 'A', 1433.66, 72, true),
+  ('Vinh',              'vinh', 'A', 1397.32, 21, true),
+  ('Hiếu',              'hieu', 'A', 1386.83, 63, true),
+  ('Quyền',             'quyen', 'A', 1333.55, 70, true),
+  ('Đức',               'duc', 'B', 1305.01, 42, true),
+  ('Grace',             'grace', 'B', 1295.19, 70, true),
+  ('Hải',               'h-i', 'B', 1265.57, 30, true),
+  ('Tân',               'tan', 'B', 1247.82, 20, true),
+  ('Bee',               'bee', 'B', 1220.02, 73, true),
+  ('Ngọc (RMIT)',       'ngoc-rmit', 'B', 1206.17, 20, true),
+  ('Hannah',            'hannah', 'B', 1205.70, 20, true),
+  ('Bích Phương',       'bich-phuong', 'C', 1136.26, 47, true),
+  ('Như',               'nh', 'C', 1111.09, 9, true),
+  ('Trung',             'trung', 'C', 1107.84, 12, true),
+  ('Vy',                'vy', 'C', 1104.65, 72, true),
+  ('Tâm',               'tam', 'C', 1077.18, 23, true),
+  ('Lâm Thồn',          'loc', 'C', 1061.88, 72, true),
+  ('Cún',               'cun', 'C', 1026.74, 50, true),
+  ('Linh',              'linh', 'D', 976.33, 39, true)
 on conflict (lower(trim(username))) do nothing;
 
 alter table public.players enable trigger players_seed_elo;

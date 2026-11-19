@@ -90,7 +90,7 @@ The world is game-like, not a copy of a game. It uses our own badges, our own Vi
 The amount of fantasy depends on the screen:
 
 - **Show screens** (player profile, rank ladder, rankings, day summary): full treatment. Tier glow behind the hero, crest, filigree cards, one reveal animation.
-- **Work screens** (organiser setup, courts, player status, settings forms, sign-in): the same tokens, but calm. No glow behind content, no animation, larger tap targets, highest contrast. Groups use the open ledger (heading and gold rule, no box) or a filigree card without corner diamonds.
+- **Work screens** (organiser setup, courts, player status, settings forms, sign-in): the same tokens, but calm. No glow behind content (except the soft avatar and rank-icon aura), no animation, larger tap targets, highest contrast. Groups use the open ledger (heading and gold rule, no box) or a filigree card without corner diamonds.
 
 **Key Characteristics:**
 - Dark, green-black ground with tier-coloured light behind the hero only.
@@ -158,11 +158,12 @@ Each tier has three values: `hi` (text on dark, the rank name), `main` (glow, av
 - Overview content uses a 2-column grid with a 20px gap. It becomes 1 column at 720px and below.
 - Breakpoints are the shared ones: 960, 720, 480, 360 (max-width).
 - Profile order: hero, then stat strip, then tabs, then the tab panel.
+- Overview panel order: Elo journey, recent form, rivalries, then duos and win quality side by side, then records.
 - Touch targets are at least 44px high.
 
 ## Elevation & Depth
 
-No drop shadows on cards or buttons. Depth comes from the double gold line, the face gradient (lighter at the top), and the tier-coloured light behind the hero. A blurred glow is allowed only behind a badge or the avatar on show screens. Avatar frames may have a small drop shadow so they sit above the card.
+No drop shadows on cards or buttons. Depth comes from the double gold line, the face gradient (lighter at the top), and the tier-coloured light behind the hero. A blurred glow is allowed only behind a badge or the avatar on show screens. Every framed avatar and rank icon has an aura behind it (see Framed avatar). Avatar frames may have a small drop shadow so they sit above the card.
 
 ### Named Rules
 **The Light Behind Rule.** Glow is light from behind an emblem, never a halo around a box or a button.
@@ -204,8 +205,21 @@ No drop shadows on cards or buttons. Depth comes from the double gold line, the 
 ### Stat strip
 - One card split into equal cells by fading hairlines with a gold diamond on each line. Label, number, note. It replaces separate stat tiles.
 
+### Profile overview widgets
+The Overview tab is about competition: where you stand, who you beat, who beats you. Every widget is a card, and each says in its note what the numbers mean. Never show a bare "2–2": a record is written **Won 2 · Lost 2**, and a score is only used for a game score (21–15).
+- **Elo journey** (full width). SVG line of the rating after each of the last 40 games, over a soft area fill in tier `main`. Dots are green for a win and rose for a loss (hover shows Elo change and score). Dashed hairlines mark tier thresholds that fall in range, a gold diamond marks the peak, a ring marks today. Under it: Now, Peak and the change over the stretch, then a progress bar to the next tier ("42 Elo to reach tier S"). Thresholds come from `src/lib/tier-bands.js`, which mirrors `tiers.min_elo` in the seed.
+- **Recent form** (full width). The last 10 games as W/L hexagon tokens with the score under each (your points first). Footer: wins in the last 10 and active weeks of the last 8.
+- **Rivalries** (full width). The most-faced opponent as a duel: your framed avatar, their framed avatar, the wins-to-losses count between them, a green/rose split bar, and a label. Label rule: from 3 games, a lead of 2 or more games is "Your victim" (you lead) or "Your nemesis" (they lead); anything closer is "Neck and neck"; under 3 games it says "Rivalry building". Below it, up to three more rivals as rows with "Won X · Lost Y" and a split bar.
+- **Duos** (half width). Best duo and toughest duo, each with avatar, "Won 5 of 7 together" and a split bar. A partner needs 3 games together. The toughest duo shows only when it differs from the best.
+- **Win quality** (half width). Average win margin, average loss margin, close games (decided by 2 points or fewer) and blowouts (10 or more) as Won/Lost pairs. Only games with a score count, and the footer says how many.
+- **Records** (full width). Peak Elo, best streak, biggest win (margin and score), biggest Elo gain in one game. A "Giant slayer" line shows the record against teams with a higher average Elo before the game.
+- **Split bar** (`.cb-split`): green width = your wins, rose width = your losses. No labels inside it; the numbers sit beside it.
+- Removed: the "Games per week" bars, "Best partner", "Top partners" and "Most faced" ledgers (ranked by games played, which hid whether you were winning).
+
 ### Framed avatar
 - The tier frame image over a round photo inset at 21%. Without a photo, show the player's initials on a tier-coloured disc (never an emoji). Sizes: 176 (hero), 96 (feature), 44 (lists).
+- **Aura.** Tier light sits behind every frame and rank icon, never on top of it.
+  - A static radial gradient of tier `main` (about 42% fading to 0) behind the frame (`.cb-pavatar-aura`, 9% past the frame) and behind the rank icon (`.cb-rank-icon::before`). No motion, no blur filter. This is allowed on work screens too.
 
 ### Inputs / Fields
 - Input Well fill, 1px gold-tint border, 2px radius, 46px high, 16px text. Label above in label style, hint below in Body SM.

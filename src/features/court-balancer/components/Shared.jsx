@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef } from "react";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { HELP } from "../help";
-import { STREAK_MIN, signed, streakIcon } from "../helpers";
+import { STREAK_MIN, streakIcon } from "../helpers";
 import { formatDelta, formatScore, resultLabel } from "../scoring.mjs";
 
 export function Header({ subtitle }) {
@@ -37,7 +37,7 @@ export function RunBadge({ count }) {
 }
 
 export function Delta({ value }) {
-  return <span className={`cb-org-delta ${value >= 0 ? "up" : "down"}`}>{signed(value)}</span>;
+  return <span className={`cb-org-delta ${value >= 0 ? "up" : "down"}`}>{formatDelta(value)}</span>;
 }
 
 export function isNewPlayer(player, settings) {

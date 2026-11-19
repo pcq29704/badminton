@@ -75,7 +75,16 @@ export function resultLabel(a, b) {
 
 export const formatScore = (a, b) => (a == null || b == null ? "" : `${a}–${b}`);
 
-// +13.3 / −13.3 / ±0
+// Elo a player won or lost in one game, from the stored before/after ratings: a number rounded
+// to 2 decimals like the database, or null when either rating is missing (old games).
+// This is the one place the change is worked out; every screen shows it with formatDelta.
+export function eloChange(before, after) {
+  if (before == null || after == null || before === "" || after === "") return null;
+  const [b, a] = [Number(before), Number(after)];
+  return Number.isFinite(b) && Number.isFinite(a) ? Math.round((a - b) * 100) / 100 : null;
+}
+
+// +13.3 / −13.3 / ±0.0
 export function formatDelta(d) {
   const r = Math.round(d * 10) / 10;
   return (r > 0 ? "+" : r < 0 ? "−" : "±") + Math.abs(r).toFixed(1);

@@ -1,4 +1,3 @@
-import { Card } from "../../components/ui";
 import { RankIcon } from "../../components/PlayerAvatar";
 import { RANK_NAMES } from "../../lib/rank-names";
 
@@ -9,10 +8,12 @@ export default function RankLadder() {
   return <section aria-labelledby="ladder-title">
     <h2 id="ladder-title" className="cb-sr">The five ranks, lowest to highest</h2>
     <ol className="cb-ladder">{RANKS.map(({ tier, name }, index) => <li key={tier} data-tier={tier} style={{ "--cb-step": index }}>
-      <Card as="div" className="cb-rung">
-        <span className="cb-rung-art"><RankIcon tier={tier} /></span>
+      <div className="cb-rung">
+        <span className="cb-banner">
+          <span className="cb-rung-art"><RankIcon tier={tier} /></span>
+        </span>
         <span className="cb-rung-name">{name}</span>
-      </Card>
+      </div>
     </li>)}</ol>
   </section>;
 }

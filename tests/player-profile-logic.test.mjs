@@ -35,6 +35,17 @@ test('public profile response is an explicit safe-field projection', () => {
   assert.equal(JSON.stringify(result).includes('created_at'), false);
 });
 
+test('profile history keeps each player\'s Elo around the game and nothing else private', () => {
+  const player = { name: 'Sam', username: 'sam', tier: 'B', profile_image_path: '', elo_before: 1200, elo_after: 1214, email: 'private' };
+  const { history } = profileResponse({ name: 'Sam', username: 'sam' }, [{ ended_at: 'x', winner: 'A', team_a: [player], team_b: [{ name: 'Old', username: 'old' }] }]);
+  assert.equal(history[0].team_a[0].elo_before, 1200);
+  assert.equal(history[0].team_a[0].elo_after, 1214);
+  assert.equal(history[0].team_a[0].elo_change, 14);
+  assert.equal(history[0].team_b[0].elo_before, null);
+  assert.equal(history[0].team_b[0].elo_change, null);
+  assert.equal(JSON.stringify(history).includes('private'), false);
+});
+
 test('Player API route does not log request credentials or return a player row', async () => {
   const source = await readFile(new URL('../src/app/api/player/route.ts', import.meta.url), 'utf8');
   assert.match(source, /claim_player_login/);

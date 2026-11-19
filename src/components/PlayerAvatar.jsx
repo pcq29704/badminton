@@ -15,9 +15,11 @@ export function initials(name) {
 
 // Profile picture inside the tier frame. The frame art has a circular opening, so the photo sits in the middle.
 // Without a photo the disc shows the player's initials in the tier colour (`name` gives the initials).
+// Behind the frame sits a soft tier-coloured aura.
 export default function PlayerAvatar({ path, tier, name = "", className = "", alt = "" }) {
   const key = tierKey(tier);
   return <span className={`cb-pavatar ${className}`.trim()} data-tier={key ? key.toUpperCase() : undefined}>
+    {key && <span className="cb-pavatar-aura" aria-hidden="true" />}
     {path
       ? <img className="cb-pavatar-photo" src={profileImageUrl(path)} alt={alt} loading="lazy" />
       : <span className="cb-pavatar-photo cb-pavatar-initials" aria-hidden="true">{initials(name)}</span>}
@@ -28,7 +30,7 @@ export default function PlayerAvatar({ path, tier, name = "", className = "", al
 export function RankIcon({ tier, className = "" }) {
   const key = tierKey(tier);
   if (!key) return <span className={className}>{tier}</span>;
-  return <span className={`cb-rank-icon ${className}`.trim()}>
+  return <span className={`cb-rank-icon ${className}`.trim()} data-tier={key.toUpperCase()}>
     <img src={`/assets/rank-badges/rank-${key}.png`} alt={`Tier ${key.toUpperCase()}`} />
   </span>;
 }

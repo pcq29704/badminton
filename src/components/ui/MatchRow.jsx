@@ -1,6 +1,6 @@
 import PlayerAvatar from "../PlayerAvatar";
 import { profileHref } from "../../features/court-balancer/helpers";
-import { formatScore, resultLabel } from "../../features/court-balancer/scoring.mjs";
+import { formatDelta, formatScore, resultLabel } from "../../features/court-balancer/scoring.mjs";
 
 const same = (a, b) => String(a || "").toLowerCase() === String(b || "").toLowerCase();
 
@@ -10,11 +10,20 @@ function Player({ player, me, you }) {
   const inner = <>
     <PlayerAvatar className="cb-avatar-sm" path={player.profile_image_path} tier={player.tier} name={player.name} />
     <span>{player.name}{you && " (you)"}{me && !you && <span className="cb-sr"> (this player)</span>}</span>
+    <EloChange value={player.elo_change} />
   </>;
   const className = `cb-match-player${me ? " me" : ""}`;
   return player.username
     ? <a className={className} href={profileHref(player.username)}>{inner}</a>
     : <span className={className}>{inner}</span>;
+}
+
+// Elo this player won or lost in the game. Nothing for unranked or old games.
+export function EloChange({ value }) {
+  if (value == null) return null;
+  return <em className={`cb-match-elo ${value > 0 ? "up" : value < 0 ? "down" : "even"}`} title="Elo change">
+    <span className="cb-sr">Elo </span>{formatDelta(value)}
+  </em>;
 }
 
 function Side({ players, state, them, isMe, isYou, winLabel }) {

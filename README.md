@@ -75,3 +75,7 @@ hash of the token in `player_sessions`. Refreshing the page keeps the player sig
 deletes that session only, so other devices stay signed in. Profile edits and image uploads no longer send the password.
 Plan: `docs/plans/2026-10-17-player-session-cookie.md`.
 
+The `profile` action returns every finished game of the player. Each player in a game carries `elo_before` and `elo_after`
+(null for old games). The profile Overview tab derives the Elo journey, rivalries, duos, win quality and records from
+that list in `src/features/player-profile/dashboard.mjs`. Spec: `docs/plans/profile-overview-competitive.md`.
+
