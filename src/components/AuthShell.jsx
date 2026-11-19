@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui";
+import { STADIUM_ENABLED } from "@/lib/app-env";
 
 // Shared sign-in layout: top nav, title column with the form.
 // The nav is the same on every page. viewer ({ role, username }) is set on signed-in pages and adds the
@@ -10,7 +11,7 @@ export function TopNav({ current, viewer, onSignOut }) {
       {viewer && <>
         <a className="cb-navlink" href="/dashboard" aria-current={current === "dashboard" ? "page" : undefined}>Dashboard</a>
         <a className="cb-navlink" href="/ranking" aria-current={current === "ranking" ? "page" : undefined}>Ranking</a>
-        <a className="cb-navlink" href="/stadium" aria-label="Stadium, Beta" aria-current={current === "stadium" ? "page" : undefined}>Stadium<span className="cb-nav-beta" aria-hidden="true">Beta</span></a>
+        {STADIUM_ENABLED && <a className="cb-navlink" href="/stadium" aria-label="Stadium, Beta" aria-current={current === "stadium" ? "page" : undefined}>Stadium<span className="cb-nav-beta" aria-hidden="true">Beta</span></a>}
         {viewer.role === "organiser" && <a className="cb-navlink" href="/organiser" aria-current={current === "courts" ? "page" : undefined}>Courts</a>}
         {viewer.role === "player" && <a className="cb-navlink" href={`/?u=${encodeURIComponent(viewer.username)}`} aria-current={current === "profile" ? "page" : undefined}><span className="cb-navlink-extra">My&nbsp;</span>profile</a>}
         <button className="cb-navlink" type="button" onClick={onSignOut}>Sign out</button>
