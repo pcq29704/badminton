@@ -7,6 +7,7 @@ export const W = {
   keen: -350,          // ⚡ wants to play
   partnerRepeat: 45,   // per previous time this duo partnered
   matchRepeat: 45,     // per previous time this exact 2v2 happened
+  meetRepeat: 15,      // per previous time two of these four shared a court (partners or opponents)
   olderFactor: 0.5,    // previous sessions count at half weight
   recentPartner: 120,  // these two were partners in their latest game today
   recentRematch: 500,  // this exact 2v2 was one of the last few games today
@@ -50,13 +51,24 @@ function scoreGame(state, A, B, avoidKey) {
   return s;
 }
 
+// How often the people in this group of 4 have already shared a court. The same for every
+// split of the group, so it steers who plays together rather than how they pair up.
+function meetCost(state, four) {
+  if (!state.meetHist) return 0;
+  let s = 0;
+  for (let i = 0; i < 4; i++)
+    for (let j = i + 1; j < 4; j++) s += cnt(state.meetHist, pairKey(four[i].id, four[j].id));
+  return s * W.meetRepeat;
+}
+
 // Best of the 3 possible doubles splits for a fixed group of 4
 function bestPairing(state, four, avoidKey) {
+  const meet = meetCost(state, four);
   let best = null;
   for (const [aIdx, bIdx] of PAIRINGS) {
     const t1 = [four[aIdx[0]], four[aIdx[1]]];
     const t2 = [four[bIdx[0]], four[bIdx[1]]];
-    const s = scoreGame(state, t1, t2, avoidKey);
+    const s = scoreGame(state, t1, t2, avoidKey) + meet;
     if (!best || s < best.s) best = { t1, t2, s };
   }
   return best;

@@ -59,6 +59,7 @@ export async function loadSession(db, state, q, id) {
 
   state.partnerHist = new Map();
   state.matchHist = new Map();
+  state.meetHist = new Map();
   state.recentMatches = [];
   state.lastPartner = new Map();
   state.log = [];

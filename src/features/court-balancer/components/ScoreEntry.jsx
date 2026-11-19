@@ -1,5 +1,5 @@
 import { playerInfo } from "./Shared";
-import { CAP_POINTS, eloChanges, formatDelta, kFor, parseScore, resultLabel, scoreProblem } from "../scoring.mjs";
+import { eloChanges, formatDelta, kFor, parseScore, resultLabel, scoreProblem } from "../scoring.mjs";
 
 // The typed score for a game: numbers (null if not a whole number), why it can't be saved yet,
 // and which side is ahead (for the green highlight).

@@ -17,7 +17,7 @@ function makeState(tiers, random, courts = 4) {
     settings: { balance_deadzone: 30 },
     players: ratings.map((elo, i) => ({ id: i + 1, elo, games: 0, consec: 0, status: 'normal', pendingRemove: false })),
     courts: Array.from({ length: courts }, (_, i) => ({ no: i + 1, game: null })),
-    partnerHist: new Map(), matchHist: new Map(), recentMatches: [], lastPartner: new Map(),
+    partnerHist: new Map(), matchHist: new Map(), meetHist: new Map(), recentMatches: [], lastPartner: new Map(),
   };
 }
 const CLUB = [[8, 1400], [4, 1250], [4, 1100]];
@@ -36,6 +36,8 @@ function finishRound(state, games) {
     inc(state.partnerHist, pairKey(...g.teamA));
     inc(state.partnerHist, pairKey(...g.teamB));
     inc(state.matchHist, matchKey(g.teamA, g.teamB));
+    const four = idsOf([g]);
+    for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) inc(state.meetHist, pairKey(four[i], four[j]));
     state.recentMatches.push(matchKey(g.teamA, g.teamB));
     for (const [x, y] of [g.teamA, g.teamB]) { state.lastPartner.set(x, y); state.lastPartner.set(y, x); }
   }
@@ -118,5 +120,16 @@ test('the next round avoids repeating a match that was just played', () => {
     const recent = state.recentMatches.slice(-4);
     for (const game of games) assert.ok(!recent.includes(matchKey(game.teamA, game.teamB)));
     finishRound(state, games);
+  }
+});
+
+test('over a session people share a court with many different players, not the same few', () => {
+  for (let session = 0; session < 20; session++) {
+    const random = seeded(session + 100);
+    const state = makeState(CLUB, random);
+    for (let round = 0; round < 10; round++) finishRound(state, planRound(state, 4, random));
+    const met = [...state.meetHist.values()];
+    assert.ok(state.meetHist.size >= 115, `session ${session}: only ${state.meetHist.size} of 120 pairs met`);
+    assert.ok(Math.max(...met) <= 5, `session ${session}: a pair shared a court ${Math.max(...met)} times`);
   }
 });
